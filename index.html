@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="잇섬: 덜 찬 화물, 함께 실어 제주까지. 제주행 공동운송 견적·예약 조회·요금 안내와 운영자 대시보드 (가상 데이터 기반 시연)">
+<meta name="description" content="잇섬: 덜 찬 화물, 함께 실어 제주까지. 제주항행 공동운송 견적·육지행 배송 요청·예약 조회와 운영자 대시보드 (가상 데이터 기반 시연)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F57C00'/%3E%3Crect x='9' y='11' width='14' height='10' rx='2' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"><title>잇섬 제주 공동운송</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
-/* PC 가로 레이아웃: 상단 바 + (왼쪽 견적 조건 | 오른쪽 결과). 오렌지 단일 라이트 테마(지정 팔레트). */
+/* PC 가로 레이아웃: 상단 바 + 단계형 견적. 오렌지 단일 라이트 테마(지정 팔레트). */
 :root {
   color-scheme: light;
   --orange: #F57C00;
@@ -23,6 +23,7 @@
   --line-strong: #DED3CE;
   --subtle: #FBF9F8;
   --others: #D3C6C0;
+  --need: #2a78d6;
   --risk-low: #2E7D32;
   --risk-mid: #EF6C00;
   --risk-high: #C62828;
@@ -44,14 +45,17 @@ body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(
 .logo i { width: 26px; height: 26px; border-radius: 7px; background: var(--orange); display: grid; place-items: center; }
 .logo i::after { content: ""; width: 12px; height: 8px; border: 2px solid var(--paper); border-radius: 2px; }
 .tagline { margin: 0; padding-left: 14px; border-left: 1px solid var(--line-strong); color: var(--ink-muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.navwrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
 nav.tabs { display: flex; gap: 4px; background: var(--subtle); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
 nav.tabs a { padding: 7px 16px; color: var(--ink-muted); text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 7px; white-space: nowrap; }
 nav.tabs a:hover { color: var(--ink); }
 nav.tabs a[aria-current="page"] { background: var(--paper); color: var(--orange-deep); box-shadow: 0 1px 3px rgba(62, 39, 35, .1); }
+.ops-badge { font-size: 12px; font-weight: 700; color: var(--paper); background: var(--ink); border-radius: 6px; padding: 3px 8px; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 
 main { padding-block: 28px 56px; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-head.center { flex-direction: column; align-items: center; text-align: center; gap: 0; }
 h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
 h2 { margin: 0; font-size: 18px; font-weight: 700; }
 h3 { margin: 0; font-size: 15px; font-weight: 700; }
@@ -62,19 +66,49 @@ p { margin: 0; }
 
 .card { border: 1px solid var(--line); border-radius: var(--r); padding: 20px 22px; display: grid; gap: 14px; align-content: start; background: var(--paper); min-width: 0; box-shadow: var(--shadow); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-
-/* 두 단 레이아웃 */
 .layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 24px; align-items: start; }
 .side { position: sticky; top: 88px; display: grid; gap: 14px; }
 .results { display: grid; gap: 20px; min-width: 0; }
-.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .grid2 .span2 { grid-column: 1 / -1; }
-.grid2 { align-items: start; }
 .stack { display: grid; gap: 20px; min-width: 0; }
-table.wrap td, table.wrap th { text-align: left; }
 
-/* 단계 진행 */
-.page-head.center { flex-direction: column; align-items: center; text-align: center; gap: 0; }
+/* 입력 */
+.fields { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fields .wide { grid-column: 1 / -1; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > span, .field legend { font-size: 12.5px; font-weight: 600; color: var(--ink-muted); padding: 0; }
+fieldset.field { border: 0; margin: 0; padding: 0; }
+input[type="number"], input[type="date"], input[type="time"], input[type="text"], input[type="password"], select { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; width: 100%; box-sizing: border-box; min-width: 0; }
+input:hover, select:hover { border-color: #CBBDB6; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--subtle); border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
+.seg.inline { display: inline-grid; }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; text-align: center; padding: 7px 10px; border-radius: 6px; font-size: 13.5px; font-weight: 600; color: var(--ink-muted); cursor: pointer; white-space: nowrap; }
+.seg input:checked + span { background: var(--paper); color: var(--orange-deep); box-shadow: 0 1px 3px rgba(62, 39, 35, .12); }
+.seg input:focus-visible + span { outline: 3px solid var(--orange); outline-offset: 1px; }
+.convert { font-size: 12.5px; color: var(--ink-muted); background: var(--subtle); border-radius: 8px; padding: 8px 10px; }
+.convert b { color: var(--orange-deep); font-weight: 700; }
+details.cfg summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); }
+details.cfg .fields { margin-top: 12px; }
+.error { color: var(--risk-high); font-weight: 600; }
+.fixed { padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--subtle); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hint { font-size: 12.5px; color: var(--ink-muted); }
+.hint b { color: var(--ink); }
+
+/* 화물 줄 추가 */
+.cargo { display: grid; gap: 8px; }
+.cargo-rows { display: grid; gap: 8px; }
+.cargo-row { display: grid; grid-template-columns: 112px minmax(70px, 1fr) 118px 26px 30px; gap: 6px; align-items: center; }
+.cargo-row .c-unit { font-size: 12.5px; color: var(--ink-muted); }
+.c-del { all: unset; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-muted); cursor: pointer; font-size: 18px; }
+.c-del:hover { background: var(--subtle); color: var(--risk-high); }
+.c-del:disabled { opacity: .3; cursor: default; }
+.c-del:focus-visible { outline: 3px solid var(--orange); }
+button.add { justify-self: start; }
+
+/* 단계 */
 .stepper { list-style: none; margin: 4px auto 28px; padding: 0; display: flex; max-width: 560px; }
 .stepper li { flex: 1; position: relative; display: flex; justify-content: center; }
 .stepper li + li::before { content: ""; position: absolute; top: 17px; left: calc(-50% + 28px); right: calc(50% + 28px); height: 2px; background: var(--line-strong); }
@@ -86,54 +120,126 @@ table.wrap td, table.wrap th { text-align: left; }
 .stepper li.on span { color: var(--ink); }
 .stepper li.past b { border-color: var(--orange); color: var(--orange-deep); }
 .stepper button:focus-visible b { outline: 3px solid var(--orange); outline-offset: 2px; }
-.step, .summary, #booked, #result > .foot { max-width: 1040px; margin-inline: auto; box-sizing: border-box; }
-.stack > [aria-labelledby="h-curve"] { order: -1; }
+.step, .summary, #booked, #result > .foot { max-width: 1080px; margin-inline: auto; box-sizing: border-box; }
 .step { display: grid; gap: 20px; }
 .form-wide { padding: 28px 32px; gap: 22px; }
 .form-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; }
 .form-cols .col { display: grid; gap: 16px; align-content: start; min-width: 0; }
 .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .actions button.primary { width: auto; padding-inline: 32px; }
-button.primary:disabled { opacity: .45; cursor: not-allowed; }
 .summary { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--subtle); border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; font-weight: 600; }
-button.link { all: unset; cursor: pointer; color: var(--orange-deep); font-weight: 600; font-size: 13px; }
-button.link:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 #booked { margin-top: 20px; }
 #result > .foot { margin-top: 24px; }
-.step .basis { order: -1; }
-.hero .card { padding-block: 26px; }
-.hero .fare-card .num { font-size: 48px; }
-@media (max-width: 860px) { .form-cols { grid-template-columns: 1fr; } }
 
-/* 상단 바 오른쪽 묶음 · 운영자 */
-.navwrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
-button.sm { padding: 7px 12px; font-size: 13px; }
-.ops-badge { font-size: 12px; font-weight: 700; color: var(--paper); background: var(--ink); border-radius: 6px; padding: 3px 8px; }
-dialog.pin { border: 1px solid var(--line); border-radius: 14px; padding: 26px 28px; width: min(360px, calc(100vw - 32px)); box-sizing: border-box; color: var(--ink); box-shadow: 0 20px 60px rgba(62, 39, 35, .25); }
-dialog.pin::backdrop { background: rgba(62, 39, 35, .35); }
-dialog.pin form { display: grid; gap: 14px; }
-dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
+/* 핵심 숫자 */
+.hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.hero .card { gap: 6px; padding-block: 26px; }
+.k { font-size: 13px; font-weight: 600; color: var(--ink-muted); }
+.num { font-weight: 700; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.s { font-size: 12.5px; color: var(--ink-muted); }
+.fare-card { background: var(--orange); border-color: var(--orange); color: var(--paper); padding: 22px 26px; box-shadow: 0 6px 22px rgba(245, 124, 0, .25) !important; }
+.fare-card .k, .fare-card .s { color: var(--paper); opacity: .92; }
+.fare-card .num { font-size: 48px; }
+.save-card .num { color: var(--orange-deep); }
+.save-card .s { font-weight: 700; color: var(--orange-deep); font-size: 14px; }
+
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; margin: 0; }
+.kv dt { color: var(--ink-muted); font-size: 13px; }
+.kv dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, currentColor 9%, white); white-space: nowrap; }
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge.low { color: var(--risk-low); }
+.badge.mid { color: var(--risk-mid); }
+.badge.high { color: var(--risk-high); }
+.notice { border-left: 3px solid var(--orange); background: var(--orange-soft); padding: 10px 12px; border-radius: 0 8px 8px 0; font-size: 13px; }
+.notice.high { border-left-color: var(--risk-high); background: #FDECEA; }
 .tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; vertical-align: 1px; }
 .tag.syn { color: #6250d6; background: #EFEDFB; }
 .tag.asm { color: #8A5A00; background: #FFF4D6; }
 .tag.real { color: var(--risk-low); background: #E8F3E9; }
+
+/* 운임 시나리오 */
+.scen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.scen .card { gap: 8px; }
+.scen .card.on { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange), var(--shadow); }
+.scen .num { font-size: 28px; }
+.scen .card.on .num { color: var(--orange-deep); }
+.scen .split { font-size: 12.5px; color: var(--ink-muted); }
+.scen .split b { color: var(--ink); }
+
+ol.steps { margin: 0; padding: 0; list-style: none; display: grid; }
+ol.steps li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+ol.steps li .v { font-weight: 700; text-align: right; }
+ol.steps li .d { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-muted); }
+ol.steps li.total { border-bottom: 0; font-size: 16px; padding-top: 12px; }
+ol.steps li.total .v { color: var(--orange-deep); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-muted); }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { font-size: 12px; color: var(--ink-muted); font-weight: 600; background: var(--subtle); }
+th:first-child, td:first-child { text-align: left; }
+table.left td, table.left th { text-align: left; }
+table.wrap td { white-space: normal; }
+td.wrapcell { white-space: normal; text-align: left; min-width: 150px; }
+
+.chart { position: relative; }
+.tip { position: absolute; pointer-events: none; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; font-size: 12px; line-height: 1.5; box-shadow: 0 4px 14px rgba(62, 39, 35, .12); white-space: nowrap; font-variant-numeric: tabular-nums; z-index: 5; }
+
+button.primary { font: inherit; font-weight: 700; font-size: 15px; padding: 13px 18px; border: 0; border-radius: 10px; background: var(--orange); color: var(--paper); cursor: pointer; width: 100%; }
+button.primary:hover { background: var(--orange-deep); }
+button.primary:disabled { opacity: .45; cursor: not-allowed; }
+button.ghost { font: inherit; font-weight: 600; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--paper); color: var(--orange-deep); cursor: pointer; }
+button.ghost:hover { border-color: var(--orange); }
+button.sm { padding: 7px 12px; font-size: 13px; }
+button.link { all: unset; cursor: pointer; color: var(--orange-deep); font-weight: 600; font-size: 13px; }
+button.link:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.done { border: 1px solid var(--orange); background: var(--orange-soft); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 6px; }
+.code { font-size: 22px; font-weight: 700; color: var(--orange-deep); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.foot { font-size: 12px; color: var(--ink-muted); display: grid; gap: 4px; }
+.list { display: grid; gap: 8px; }
+.list button { text-align: left; font: inherit; padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.list button:hover { border-color: var(--orange); }
+.placeholder { border: 1px dashed var(--line-strong); border-radius: var(--r); padding: 48px 24px; text-align: center; color: var(--ink-muted); }
+.empty-note { color: var(--ink-muted); padding: 18px 0; text-align: center; }
+
+/* 운영자 */
+dialog.pin { border: 1px solid var(--line); border-radius: 14px; padding: 26px 28px; width: min(360px, calc(100vw - 32px)); box-sizing: border-box; color: var(--ink); box-shadow: 0 20px 60px rgba(62, 39, 35, .25); }
+dialog.pin::backdrop { background: rgba(62, 39, 35, .35); }
+dialog.pin form { display: grid; gap: 14px; }
+dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
 .ops-controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
-.ops-controls .field { min-width: 160px; }
+.ops-controls .field { min-width: 150px; }
 .ops-controls output { font-weight: 700; color: var(--orange-deep); }
-.seg.inline { display: inline-grid; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .kpis .card { gap: 4px; padding: 18px 20px; }
 .kpis .num { font-size: 26px; }
 .kpis .arrow { color: var(--ink-muted); font-weight: 400; font-size: 18px; margin: 0 4px; }
-.hbars { display: grid; gap: 10px; }
-.hbar { display: grid; grid-template-columns: 92px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 13px; }
-.hbar .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hbar .track { height: 14px; background: var(--subtle); border-radius: 0 4px 4px 0; }
-.hbar .fill { height: 100%; background: var(--orange); border-radius: 0 4px 4px 0; min-width: 2px; }
-.hbar .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
-.hbar .val small { color: var(--ink-muted); }
-.stackbar { display: flex; gap: 2px; height: 28px; }
-.stackbar span { border-radius: 4px; min-width: 2px; }
+.kpis .card.done-k .num { color: var(--orange-deep); }
+.kpis .card.need-k .num { color: var(--need); }
+.kgroup { display: grid; gap: 10px; }
+.kgroup h3 { display: flex; gap: 8px; align-items: center; }
+.srows { display: grid; gap: 10px; }
+.srow { display: grid; grid-template-columns: 170px minmax(0, 1fr) 150px; gap: 12px; align-items: center; font-size: 13px; }
+.srow .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srow .strack { display: flex; gap: 2px; height: 16px; }
+.srow .strack span { border-radius: 3px; min-width: 2px; }
+.srow .val { text-align: right; font-variant-numeric: tabular-nums; }
+.srow.total { font-weight: 700; }
+.pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.pstep { position: relative; border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; display: grid; gap: 5px; align-content: start; background: var(--subtle); }
+.pstep + .pstep::before { content: "→"; position: absolute; left: -13px; top: 50%; transform: translate(-50%, -50%); color: var(--orange); font-weight: 700; }
+.pno { width: 24px; height: 24px; border-radius: 50%; background: var(--orange); color: var(--paper); font-weight: 700; font-size: 12.5px; display: grid; place-items: center; }
+.pstep .pm { font-size: 12.5px; color: var(--ink-muted); }
+.pstep .pv { font-weight: 700; font-size: 14px; }
+.cmpbars { display: grid; gap: 10px; }
+.cmpbar { display: grid; grid-template-columns: 150px minmax(0, 1fr) 210px; gap: 12px; align-items: center; font-size: 13px; }
+.cmpbar .track { height: 18px; }
+.cmpbar .track span { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.cmpbar .val { text-align: right; font-variant-numeric: tabular-nums; }
 .meter { display: inline-flex; align-items: center; gap: 8px; min-width: 130px; }
 .meter i { display: block; width: 80px; height: 8px; background: var(--subtle); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
 .meter i b { display: block; height: 100%; background: var(--orange); }
@@ -151,120 +257,36 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
 .pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
 .pill.ok { color: var(--risk-low); background: #E8F3E9; }
 .pill.off { color: var(--risk-high); background: #FDECEA; }
+.pill.need { color: var(--need); background: #E7F0FB; }
+.pill.done { color: var(--orange-deep); background: var(--orange-soft); }
 .card.off { background: var(--subtle); }
 .truck-grid { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px 20px; }
 .truck-grid figure { margin: 0; display: grid; gap: 4px; }
 .truck-grid figcaption { font-size: 12.5px; color: var(--ink-muted); display: flex; justify-content: space-between; gap: 8px; }
 .truck-grid figcaption b { color: var(--ink); }
-td.wrapcell { white-space: normal; text-align: left; min-width: 150px; }
-td.dests { white-space: normal; min-width: 80px; }
 .okmark { color: var(--risk-low); font-weight: 700; }
 .ngmark { color: var(--risk-high); font-weight: 700; }
-.empty-note { color: var(--ink-muted); padding: 18px 0; text-align: center; }
-@media (max-width: 1080px) { .navwrap { flex-wrap: wrap; justify-content: flex-end; } }
 
-/* 입력 폼 */
-form.card { gap: 18px; }
-.fields { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.fields .wide { grid-column: 1 / -1; }
-.field { display: grid; gap: 6px; min-width: 0; }
-.field > span, .field legend { font-size: 12.5px; font-weight: 600; color: var(--ink-muted); padding: 0; }
-fieldset.field { border: 0; margin: 0; padding: 0; }
-input[type="number"], input[type="date"], input[type="time"], input[type="text"], select { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; width: 100%; box-sizing: border-box; min-width: 0; }
-input:hover, select:hover { border-color: #CBBDB6; }
-.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; background: var(--subtle); border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
-.seg label { position: relative; }
-.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.seg span { display: block; text-align: center; padding: 7px 8px; border-radius: 6px; font-size: 13.5px; font-weight: 600; color: var(--ink-muted); cursor: pointer; }
-.seg input:checked + span { background: var(--paper); color: var(--orange-deep); box-shadow: 0 1px 3px rgba(62, 39, 35, .12); }
-.seg input:focus-visible + span { outline: 3px solid var(--orange); outline-offset: 1px; }
-.unit-row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-.convert { font-size: 12.5px; color: var(--ink-muted); background: var(--subtle); border-radius: 8px; padding: 8px 10px; }
-.convert b { color: var(--orange-deep); font-weight: 700; }
-.divider { height: 1px; background: var(--line); margin: 0; border: 0; }
-details.cfg summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); }
-details.cfg .fields { margin-top: 12px; }
-.error { color: var(--risk-high); font-weight: 600; }
-
-/* 핵심 숫자: 운임이 주인공 */
-.hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-.hero .card { gap: 6px; }
-.k { font-size: 13px; font-weight: 600; color: var(--ink-muted); }
-.num { font-weight: 700; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.s { font-size: 12.5px; color: var(--ink-muted); }
-.fare-card { background: var(--orange); border-color: var(--orange); color: var(--paper); padding: 22px 26px; }
-.fare-card .k, .fare-card .s { color: var(--paper); opacity: .92; }
-.fare-card .num { font-size: 44px; }
-.save-card .num { color: var(--orange-deep); }
-.hero .card.fare-card { box-shadow: 0 6px 22px rgba(245, 124, 0, .25); }
-
-/* 배정 */
-.kv { display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; margin: 0; }
-.kv dt { color: var(--ink-muted); font-size: 13px; }
-.kv dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
-.badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, currentColor 9%, white); }
-.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.badge.low { color: var(--risk-low); }
-.badge.mid { color: var(--risk-mid); }
-.badge.high { color: var(--risk-high); }
-.notice { border-left: 3px solid var(--orange); background: var(--orange-soft); padding: 10px 12px; border-radius: 0 8px 8px 0; font-size: 13px; }
-.notice.high { border-left-color: var(--risk-high); background: #FDECEA; }
-
-/* 계산 근거 */
-ol.steps { margin: 0; padding: 0; list-style: none; display: grid; }
-ol.steps li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-ol.steps li .v { font-weight: 700; text-align: right; }
-ol.steps li .d { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-muted); }
-ol.steps li.total { border-bottom: 0; font-size: 16px; padding-top: 12px; }
-ol.steps li.total .v { color: var(--orange-deep); }
-.truck-fig { display: flex; flex-wrap: wrap; gap: 8px 20px; }
-.truck-fig svg { flex: 1 1 280px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-muted); }
-.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
-
-/* 표 */
-.tablewrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
-th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-th { font-size: 12px; color: var(--ink-muted); font-weight: 600; background: var(--subtle); }
-th:first-child, td:first-child { text-align: left; }
-tr.us td { color: var(--orange-deep); font-weight: 700; background: var(--orange-soft); }
-table.wrap td { white-space: normal; }
-
-.chart { position: relative; }
-.tip { position: absolute; pointer-events: none; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; font-size: 12px; line-height: 1.5; box-shadow: 0 4px 14px rgba(62, 39, 35, .12); white-space: nowrap; font-variant-numeric: tabular-nums; }
-
-button.primary { font: inherit; font-weight: 700; font-size: 15px; padding: 13px 18px; border: 0; border-radius: 10px; background: var(--orange); color: var(--paper); cursor: pointer; width: 100%; }
-button.primary:hover { background: var(--orange-deep); }
-button.ghost { font: inherit; font-weight: 600; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--paper); color: var(--orange-deep); cursor: pointer; }
-button.ghost:hover { border-color: var(--orange); }
-.done { border: 1px solid var(--orange); background: var(--orange-soft); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 6px; }
-.code { font-size: 22px; font-weight: 700; color: var(--orange-deep); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.foot { font-size: 12px; color: var(--ink-muted); display: grid; gap: 4px; }
-.list { display: grid; gap: 8px; }
-.list button { text-align: left; font: inherit; padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.list button:hover { border-color: var(--orange); }
-.placeholder { border: 1px dashed var(--line-strong); border-radius: var(--r); padding: 48px 24px; text-align: center; color: var(--ink-muted); }
-
-/* 화면이 좁을 때만 한 단으로 */
 @media (max-width: 1080px) {
   .hero { grid-template-columns: 1fr 1fr; }
   .hero .fare-card { grid-column: 1 / -1; }
-  .grid2 { grid-template-columns: 1fr; }
+  .grid2, .scen { grid-template-columns: 1fr; }
+  .pipe { grid-template-columns: 1fr 1fr; }
+  .navwrap { flex-wrap: wrap; justify-content: flex-end; }
 }
 @media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout, .form-cols { grid-template-columns: 1fr; }
   .side { position: static; }
   .tagline { display: none; }
 }
 @media (max-width: 560px) {
   .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .topbar .container { height: auto; padding-block: 10px; flex-wrap: wrap; gap: 10px; }
-  nav.tabs { width: 100%; }
-  nav.tabs a { flex: 1; text-align: center; padding-inline: 8px; }
-  .hero { grid-template-columns: 1fr; }
+  nav.tabs { width: 100%; overflow-x: auto; }
+  .hero, .pipe { grid-template-columns: 1fr; }
   .fare-card .num { font-size: 36px; }
+  .cargo-row { grid-template-columns: 1fr 1fr 30px; }
+  .srow, .cmpbar { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -279,12 +301,12 @@ button.ghost:hover { border-color: var(--orange); }
     <div class="navwrap">
       <nav class="tabs" id="nav-cust" aria-label="고객 화면">
         <a href="#quote" data-view="quote">견적 받기</a>
-        <a href="#return" data-view="return">제주→육지 보내기</a>
+        <a href="#return" data-view="return">육지로 보내기</a>
         <a href="#booking" data-view="booking">내 예약 조회</a>
         <a href="#pricing" data-view="pricing">요금 안내</a>
       </nav>
       <nav class="tabs" id="nav-ops" aria-label="운영자 화면" hidden>
-        <a href="#ops-orders" data-view="ops-orders">주문 현황</a>
+        <a href="#ops-daily" data-view="ops-daily">일일 현황</a>
         <a href="#ops-plan" data-view="ops-plan">배송 계획</a>
         <a href="#ops-back" data-view="ops-back">복화 매칭</a>
         <a href="#ops-settle" data-view="ops-settle">정산</a>
@@ -311,7 +333,7 @@ button.ghost:hover { border-color: var(--orange); }
   <div class="container">
     <div class="page-head center">
       <h1>제주행 공동운송 견적</h1>
-      <p class="lead">화물 정보만 넣으면 운임과 탈 배를 바로 알려 드립니다.</p>
+      <p class="lead">화물 정보만 넣으면 제주항까지 운임과 탈 배를 바로 알려 드립니다.</p>
     </div>
     <ol class="stepper" id="stepper">
       <li data-step="1"><button type="button" data-goto="1"><b>1</b><span>화물 정보</span></button></li>
@@ -321,179 +343,202 @@ button.ghost:hover { border-color: var(--orange); }
     <div class="summary" id="summary" hidden><span id="summary-txt">—</span><button type="button" class="link" data-goto="1">정보 수정</button></div>
 
     <section class="step" data-step-panel="1">
-        <form id="qform" class="card form-wide" novalidate>
-          <div class="form-cols">
+      <form id="qform" class="card form-wide" novalidate>
+        <div class="form-cols">
           <div class="col">
-          <h2>화물</h2>
-          <fieldset class="field">
-            <legend>화물량 입력 방식</legend>
-            <div class="seg" role="radiogroup">
-              <label><input type="radio" name="unit" id="u-roll" value="roll" checked><span>롤테이너</span></label>
-              <label><input type="radio" name="unit" id="u-box" value="box"><span>박스</span></label>
-              <label><input type="radio" name="unit" id="u-m3" value="m3"><span>부피(㎥)</span></label>
+            <h2>화물</h2>
+            <div class="field">
+              <span>화물 목록 (종류가 섞여 있으면 줄을 추가하세요)</span>
+              <div class="cargo" id="q-cargo">
+                <div class="cargo-rows"></div>
+                <button type="button" class="ghost sm add">+ 화물 추가</button>
+              </div>
             </div>
-          </fieldset>
-          <div class="unit-row" id="row-roll">
-            <label class="field"><span>롤테이너 수 (0.5칸 단위)</span><input type="number" id="q-rolls" min="0.5" max="36" step="0.5" value="3"></label>
-          </div>
-          <div class="unit-row" id="row-box" hidden>
-            <label class="field"><span>박스 수</span><input type="number" id="q-boxes" min="1" step="1" value="60"></label>
-            <label class="field"><span>박스 크기</span>
-              <select id="q-boxsize">
-                <option value="0.03">소 (0.03㎥)</option>
-                <option value="0.06" selected>중 (0.06㎥)</option>
-                <option value="0.12">대 (0.12㎥)</option>
-              </select>
-            </label>
-          </div>
-          <div class="unit-row" id="row-m3" hidden>
-            <label class="field"><span>부피 (㎥)</span><input type="number" id="q-m3" min="0.1" step="0.1" value="3.6"></label>
-          </div>
-          <p class="convert" id="convert">—</p>
-          <fieldset class="field">
-            <legend>온도</legend>
-            <div class="seg">
-              <label><input type="radio" name="temp" id="t-amb" value="ambient" checked><span>상온</span></label>
-              <label><input type="radio" name="temp" id="t-cold" value="cold"><span>냉장</span></label>
-            </div>
-          </fieldset>
+            <p class="convert" id="convert">—</p>
+            <fieldset class="field">
+              <legend>온도</legend>
+              <div class="seg">
+                <label><input type="radio" name="temp" value="ambient" checked><span>상온</span></label>
+                <label><input type="radio" name="temp" value="cold"><span>냉장</span></label>
+              </div>
+            </fieldset>
           </div>
           <div class="col">
-          <h2>운송 정보</h2>
-          <div class="fields">
-            <label class="field wide"><span>보내는 분 (회사·이름)</span><input type="text" id="q-name" maxlength="30" placeholder="예: 한빛상회"></label>
-            <label class="field"><span>출발지</span>
-              <select id="q-hub">
-                <option value="수도권">수도권 (5.0시간)</option>
-                <option value="대전">대전 (3.5시간)</option>
-                <option value="광주">광주 (1.0시간)</option>
-                <option value="기타">기타 (직접 입력)</option>
-              </select>
-            </label>
-            <label class="field"><span>목적지</span>
-              <select id="q-dest">
-                <option>제주시</option>
-                <option>서귀포시</option>
-                <option>제주 동부</option>
-                <option>제주 서부</option>
-              </select>
-            </label>
-            <label class="field wide" id="row-hubhours" hidden><span>목포까지 소요 시간 (시간)</span><input type="number" id="q-hubhours" min="0" max="12" step="0.5" value="2"></label>
-            <label class="field"><span>출발 희망일</span><input type="date" id="q-date" min="2025-11-01" max="2026-12-31" value="2026-11-03"></label>
-            <label class="field"><span>출발 시각</span><input type="time" id="q-time" value="10:00"></label>
-          </div>
-          </div>
-          </div>
-          <details class="cfg">
-            <summary>가정값 바꾸기</summary>
+            <h2>운송 정보</h2>
             <div class="fields">
-              <label class="field"><span>롤테이너 1칸 (㎥)</span><input type="number" id="c-roll" min="0.5" max="3" step="0.1" value="1.2"></label>
-              <label class="field"><span>결항 확률 기준값</span><input type="number" id="c-th" min="0.1" max="0.9" step="0.05" value="0.5"></label>
-              <label class="field wide"><span>기사 승선료 (원)</span><input type="number" id="c-driver" min="0" step="1000" value="0"></label>
+              <label class="field wide"><span>보내는 분 (회사·이름)</span><input type="text" id="q-name" maxlength="30" placeholder="예: 한빛상회"></label>
+              <label class="field"><span>출발 지역</span><select id="q-region"></select></label>
+              <label class="field"><span>출발항</span><select id="q-port"></select></label>
+              <label class="field wide" id="row-hubhours" hidden><span>출발항까지 소요 시간 (시간)</span><input type="number" id="q-hubhours" min="0" max="12" step="0.5" value="2"></label>
+              <p class="hint wide" id="port-hint">—</p>
+              <div class="field wide"><span>도착항</span><div class="fixed">제주항 <span class="small muted">모든 화물은 제주항으로 모읍니다</span></div></div>
+              <label class="field"><span>출발 희망일</span><input type="date" id="q-date" max="2026-12-31"></label>
+              <label class="field"><span>출발 시각</span><input type="time" id="q-time" value="10:00"></label>
             </div>
-          </details>
-        </form>
-        <p class="error" id="q-error" hidden></p>
-        <div class="actions"><span></span><button type="button" class="primary" id="to2" data-goto="2">운임 확인하기 →</button></div>
+          </div>
+        </div>
+        <details class="cfg">
+          <summary>가정값 바꾸기</summary>
+          <div class="fields">
+            <label class="field"><span>롤테이너 1칸 (㎥)</span><input type="number" id="c-roll" min="0.5" max="3" step="0.1" value="1.2"></label>
+            <label class="field"><span>결항 확률 기준값</span><input type="number" id="c-th" min="0.1" max="0.9" step="0.05" value="0.5"></label>
+            <label class="field"><span>기사 승선료 (원)</span><input type="number" id="c-driver" min="0" step="1000" value="0"></label>
+          </div>
+        </details>
+      </form>
+      <p class="error" id="q-error" hidden></p>
+      <div class="actions"><span></span><button type="button" class="primary" id="to2" data-goto="2">운임 확인하기 →</button></div>
     </section>
 
     <div id="result">
-    <section class="step" data-step-panel="2" hidden>
-          <div class="hero">
-            <div class="card fare-card">
-              <span class="k">내 운임 (잇섬 공동운송)</span>
-              <span class="num" id="r-fare">—</span>
-              <span class="s" id="r-range">—</span>
-            </div>
-            <div class="card save-card">
-              <span class="k">혼자 트럭을 띄울 때보다</span>
-              <span class="num" id="r-save">—</span>
-              <span class="s" id="r-save-pct">—</span>
-            </div>
-            <div class="card">
-              <span class="k">혼자 보낼 때</span>
-              <span class="num" id="r-solo">—</span>
-              <span class="s" id="r-solo-sub">—</span>
-            </div>
+      <section class="step" data-step-panel="2" hidden>
+        <div class="hero">
+          <div class="card fare-card">
+            <span class="k">내 운임 (잇섬 공동운송)</span>
+            <span class="num" id="r-fare">—</span>
+            <span class="s" id="r-range">—</span>
           </div>
-
-            <section class="card" aria-labelledby="h-sched">
-              <div class="card-head">
-                <h3 id="h-sched">내 화물이 탈 배</h3>
-                <span class="badge" id="r-risk">—</span>
-              </div>
-              <p class="notice" id="r-moved" hidden></p>
-              <dl class="kv">
-                <dt>선박</dt><dd id="r-ship">—</dd>
-                <dt>목포항 도착</dt><dd id="r-mokpo">—</dd>
-                <dt>출항</dt><dd id="r-dep">—</dd>
-                <dt>제주항 도착 예정</dt><dd id="r-port">—</dd>
-                <dt>목적지 도착 예정</dt><dd id="r-dest">—</dd>
-              </dl>
-              <p class="notice high" id="r-highnote" hidden></p>
-            </section>
-          <div class="actions"><button type="button" class="ghost" data-goto="1">← 정보 수정</button><div class="row"><button type="button" class="ghost book-btn">이 견적으로 예약하기</button><button type="button" class="primary" data-goto="3">계산 근거 보기 →</button></div></div>
-    </section>
-
-    <section class="step" data-step-panel="3" hidden>
-          <div class="grid2">
-            <div class="stack">
-            <section class="card" aria-labelledby="h-compare">
-              <h3 id="h-compare">보내는 방법 비교</h3>
-              <div class="tablewrap">
-                <table>
-                  <thead><tr><th>방법</th><th>비용</th><th>대기</th><th>목적지 도착</th></tr></thead>
-                  <tbody id="cmp"></tbody>
-                </table>
-              </div>
-              <p class="small muted">차 찰 때까지 대기는 매일 같은 물량을 모아 12칸이 차면 보낸다고 본 경우입니다.</p>
-            </section>
-            <section class="card" aria-labelledby="h-curve">
-              <h3 id="h-curve">물량별 운임</h3>
-              <p class="small muted">같은 날, 같은 배에 실린다고 보고 내 물량만 0.5~12칸으로 바꿔 본 운임입니다.</p>
-              <div class="chart" id="curve"></div>
-              <div class="legend">
-                <span><i style="background: var(--orange);"></i>잇섬 운임</span>
-                <span><i style="background: var(--ink);"></i>혼자 트럭</span>
-              </div>
-            </section>
-            </div>
-
-            <section class="card basis" aria-labelledby="h-basis">
-              <h3 id="h-basis">운임 계산 근거</h3>
-              <div class="truck-fig" id="truck-fig"></div>
-              <div class="legend">
-                <span><i style="background: var(--orange);"></i>내 화물</span>
-                <span><i style="background: var(--others);"></i>함께 실리는 다른 고객 (예상)</span>
-                <span><i style="background: var(--paper); border: 1px solid var(--line-strong);"></i>빈 칸</span>
-              </div>
-              <ol class="steps" id="steps"></ol>
-            </section>
+          <div class="card save-card">
+            <span class="k">혼자 트럭을 띄울 때보다</span>
+            <span class="num" id="r-save">—</span>
+            <span class="s" id="r-save-pct">—</span>
           </div>
-          <div class="actions"><button type="button" class="ghost" data-goto="2">← 운임 확인</button><button type="button" class="primary book-btn">이 견적으로 예약하기</button></div>
-    </section>
+          <div class="card">
+            <span class="k">혼자 보낼 때</span>
+            <span class="num" id="r-solo">—</span>
+          </div>
+        </div>
+        <section class="card" aria-labelledby="h-sched">
+          <div class="card-head">
+            <h3 id="h-sched">내 화물이 탈 배</h3>
+            <span class="badge" id="r-risk">—</span>
+          </div>
+          <p class="notice" id="r-moved" hidden></p>
+          <dl class="kv">
+            <dt>출발항</dt><dd id="r-portname">—</dd>
+            <dt>선박</dt><dd id="r-ship">—</dd>
+            <dt>출발항 도착</dt><dd id="r-arrive">—</dd>
+            <dt>출항</dt><dd id="r-dep">—</dd>
+            <dt>제주항 도착</dt><dd id="r-port">—</dd>
+            <dt>제주항 화물 인수 가능</dt><dd id="r-ready">—</dd>
+          </dl>
+          <p class="notice high" id="r-highnote" hidden></p>
+        </section>
+        <div class="actions"><button type="button" class="ghost" data-goto="1">← 정보 수정</button><div class="row"><button type="button" class="ghost book-btn">이 견적으로 예약하기</button><button type="button" class="primary" data-goto="3">계산 근거 보기 →</button></div></div>
+      </section>
 
-    <div class="done" id="booked" hidden>
-      <span class="k">예약 번호</span>
-      <span class="code" id="booked-id">—</span>
-      <span class="small muted">내 예약 조회 화면에서 배편과 도착 예정을 확인할 수 있습니다. 예약은 이 브라우저에만 저장되는 시연용입니다.</span>
-      <div class="row"><button type="button" class="ghost" id="go-booking">내 예약 조회로 가기</button></div>
-    </div>
-    <div class="foot">
-      <span id="data-note">—</span>
-      <span>결항 확률은 가상 기상 데이터 기반 예시이며, 실제 운항 정보는 선사 공지를 확인하세요.</span>
-    </div>
+      <section class="step" data-step-panel="3" hidden>
+        <section class="card">
+          <div class="card-head"><h3>트럭이 얼마나 차느냐에 따라 운임이 달라집니다</h3><span class="small muted" id="scen-sub">—</span></div>
+          <div class="scen" id="scen"></div>
+          <div class="legend">
+            <span><i style="background: var(--orange);"></i>내 화물</span>
+            <span><i style="background: var(--others);"></i>함께 실리는 다른 고객</span>
+            <span><i style="background: var(--paper); border: 1px dashed var(--line-strong);"></i>빈 칸</span>
+          </div>
+          <p class="small">위 막대는 트럭 공간, 아래 막대는 그 트럭의 도선료입니다. 도선료는 <b>실린 칸 수 비율</b>로만 나누기 때문에 함께 실리는 화물이 많을수록 내 몫이 작아집니다. 최종 운임은 출항 마감 때 실제로 실린 양으로 정해지며, 혼자 보낼 때 비용을 넘지 않습니다.</p>
+        </section>
+        <div class="grid2">
+          <section class="card" aria-labelledby="h-basis">
+            <h3 id="h-basis">운임 계산 단계 (지금 예상 기준)</h3>
+            <ol class="steps" id="steps"></ol>
+          </section>
+          <section class="card" aria-labelledby="h-curve">
+            <h3 id="h-curve">물량별 운임</h3>
+            <p class="small muted">같은 날, 같은 배에 실린다고 보고 내 물량만 0.5~12칸으로 바꿔 본 운임입니다.</p>
+            <div class="chart" id="curve"></div>
+            <div class="legend">
+              <span><i style="background: var(--orange);"></i>잇섬 운임</span>
+              <span><i style="background: var(--ink);"></i>혼자 트럭</span>
+            </div>
+          </section>
+        </div>
+        <div class="actions"><button type="button" class="ghost" data-goto="2">← 운임 확인</button><button type="button" class="primary book-btn">이 견적으로 예약하기</button></div>
+      </section>
+
+      <div class="done" id="booked" hidden>
+        <span class="k">예약 번호</span>
+        <span class="code" id="booked-id">—</span>
+        <span class="small muted">내 예약 조회 화면에서 배편과 도착 예정을 확인할 수 있습니다. 예약은 이 브라우저에만 저장되는 시연용입니다.</span>
+        <div class="row"><button type="button" class="ghost" id="go-booking">내 예약 조회로 가기</button></div>
+      </div>
+      <div class="foot">
+        <span id="data-note">—</span>
+        <span>결항 확률은 가상 기상 데이터 기반 예시이며, 실제 운항 정보는 선사 공지를 확인하세요.</span>
+      </div>
     </div>
   </div>
 </main>
 
-<!-- 화면 2: 내 예약 조회 -->
+<!-- 화면 2: 육지로 보내기 -->
+<main id="view-return" class="gutter" data-page="return" hidden>
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>제주에서 육지로 보내기</h1>
+        <p class="lead">제주에 내려간 잇섬 트럭이 빈 채로 돌아가지 않도록, 육지로 갈 화물을 함께 실어 드립니다.</p>
+      </div>
+    </div>
+    <div class="layout" style="grid-template-columns: 460px minmax(0, 1fr);">
+      <aside class="side">
+        <form id="rform" class="card" novalidate>
+          <h2>육지로 배송 요청</h2>
+          <label class="field"><span>보내는 분 (회사·이름)</span><input type="text" id="rq-name" maxlength="30" placeholder="예: 서귀포 감귤농원"></label>
+          <div class="field">
+            <span>화물 목록</span>
+            <div class="cargo" id="rq-cargo">
+              <div class="cargo-rows"></div>
+              <button type="button" class="ghost sm add">+ 화물 추가</button>
+            </div>
+          </div>
+          <p class="convert" id="rq-convert">—</p>
+          <fieldset class="field">
+            <legend>온도</legend>
+            <div class="seg">
+              <label><input type="radio" name="rqtemp" value="ambient" checked><span>상온</span></label>
+              <label><input type="radio" name="rqtemp" value="cold"><span>냉장</span></label>
+            </div>
+          </fieldset>
+          <div class="fields">
+            <div class="field wide"><span>출발항</span><div class="fixed">제주항</div></div>
+            <label class="field"><span>도착 지역</span><select id="rq-region"></select></label>
+            <label class="field"><span>도착항</span><select id="rq-port"></select></label>
+            <label class="field wide" id="rq-row-hours" hidden><span>도착항에서 도착지까지 소요 시간 (시간)</span><input type="number" id="rq-hours" min="0" max="12" step="0.5" value="2"></label>
+            <label class="field"><span>준비일</span><input type="date" id="rq-date" max="2026-12-31"></label>
+            <label class="field"><span>준비 시각</span><input type="time" id="rq-time" value="09:00"></label>
+          </div>
+          <p class="error" id="rq-error" hidden></p>
+          <button type="submit" class="primary">배송 요청하기</button>
+        </form>
+      </aside>
+      <div class="results">
+        <section class="card">
+          <h3>육지행 운임은 이렇게 정해집니다</h3>
+          <p>제주에서 출발항으로 돌아가는 트럭 한 대의 도선료를 실린 칸 수 비율로 나누고, 칸당 하역비 3,000원을 더합니다. 실릴 트럭이 정해지면 운임이 확정됩니다.</p>
+          <p class="small muted">예: 목포항행 트럭 12칸이 모두 차고 내 화물이 2칸이면 364,380원 × 2/12 + 6,000원 = 66,730원. 제주 출항 시각과 목포항 외 항로 운임은 가정값이며 선사 확인이 필요합니다.</p>
+        </section>
+        <div class="done" id="rq-done" hidden>
+          <span class="k">요청 번호</span>
+          <span class="code" id="rq-done-id">—</span>
+          <span class="small muted">요청은 이 브라우저에만 저장되는 시연용입니다.</span>
+        </div>
+        <section class="card">
+          <h3>이 브라우저의 육지행 요청</h3>
+          <div class="list" id="rq-list"></div>
+          <p class="small muted" id="rq-empty">아직 요청이 없습니다.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 화면 3: 내 예약 조회 -->
 <main id="view-booking" class="gutter" data-page="booking" hidden>
   <div class="container">
     <div class="page-head">
       <div>
         <h1>내 예약 조회</h1>
-        <p class="lead">예약 번호로 배편, 결항 위험, 도착 예정을 확인합니다.</p>
+        <p class="lead">예약 번호로 배편, 결항 위험, 제주항 도착 예정을 확인합니다.</p>
       </div>
     </div>
     <div class="layout">
@@ -521,10 +566,11 @@ button.ghost:hover { border-color: var(--orange); }
             <dt>상태</dt><dd id="b-status">—</dd>
             <dt>화물량</dt><dd id="b-qty">—</dd>
             <dt>운임</dt><dd id="b-fare">—</dd>
+            <dt>출발항</dt><dd id="b-portname">—</dd>
             <dt>선박</dt><dd id="b-ship">—</dd>
             <dt>출항</dt><dd id="b-dep">—</dd>
-            <dt>제주항 도착 예정</dt><dd id="b-port">—</dd>
-            <dt>목적지 도착 예정</dt><dd id="b-dest">—</dd>
+            <dt>제주항 도착</dt><dd id="b-port">—</dd>
+            <dt>화물 인수 가능</dt><dd id="b-ready">—</dd>
           </dl>
         </section>
       </div>
@@ -532,52 +578,57 @@ button.ghost:hover { border-color: var(--orange); }
   </div>
 </main>
 
-<!-- 화면 3: 요금 안내 -->
+<!-- 화면 4: 요금 안내 -->
 <main id="view-pricing" class="gutter" data-page="pricing" hidden>
   <div class="container">
     <div class="page-head">
       <div>
         <h1>운임은 트럭에서 차지한 만큼만</h1>
-        <p class="lead" style="max-width: 80ch;">제주행 화물은 트럭째 카페리에 실려 바다를 건넙니다. 잇섬은 여러 고객의 화물을 목포항 근처 합적 지점에 모아 한 트럭에 함께 싣고, 트럭 한 대의 도선료를 각자 차지한 칸 수(부피) 비율대로 나눕니다.</p>
+        <p class="lead" style="max-width: 80ch;">제주행 화물은 트럭째 카페리에 실려 바다를 건넙니다. 잇섬은 여러 고객의 화물을 출발항 근처 합적 지점에 모아 한 트럭에 함께 싣고, 트럭 한 대의 도선료를 각자 차지한 칸 수(부피) 비율대로 나눕니다. 도착항은 모두 제주항입니다.</p>
       </div>
     </div>
     <div class="grid2">
       <section class="card">
         <h3>예시: A 6칸, B 3칸, 나 3칸이 한 트럭에 실리면</h3>
-        <div class="truck-fig" id="ex-truck"></div>
+        <div id="ex-strip"></div>
         <div class="legend">
           <span><i style="background: #8D6E63;"></i>A 6칸</span>
           <span><i style="background: var(--others);"></i>B 3칸</span>
           <span><i style="background: var(--orange);"></i>나 3칸</span>
         </div>
-        <p>평일 도선료 364,380원을 6 : 3 : 3으로 나눕니다. 나는 <b id="ex-share">—</b>에 하역비 <b>9,000원</b>(3칸 × 3,000원)을 더해 <b id="ex-total" style="color: var(--orange-deep);">—</b>을 냅니다.</p>
-        <hr class="divider">
-        <h3>혼자 보낼 때보다 더 내지 않습니다</h3>
-        <p>함께 실릴 화물이 적어 트럭이 덜 차면 칸당 비용이 올라갑니다. 그래도 내 운임이 혼자 트럭을 띄울 때 비용을 넘으면, 혼자 보낼 때 비용까지만 받습니다.</p>
+        <p>목포항 평일 도선료 364,380원을 6 : 3 : 3으로 나눕니다. 나는 <b id="ex-share">—</b>에 하역비 <b>9,000원</b>(3칸 × 3,000원)을 더해 <b id="ex-total" style="color: var(--orange-deep);">—</b>을 냅니다.</p>
+        <p class="small muted">함께 실릴 화물이 적어 트럭이 덜 차면 칸당 비용이 올라갑니다. 그래도 내 운임이 혼자 트럭을 띄울 때 비용을 넘으면, 혼자 보낼 때 비용까지만 받습니다.</p>
       </section>
       <section class="card">
         <h3>계산 확인 예시</h3>
-        <p class="small muted">평일, 상온 3칸, 수도권 10:00 출발, 같은 배편 다른 고객 잔량 6칸 → 트럭 9칸 적재</p>
+        <p class="small muted">평일, 상온 3칸, 수도권 10:00 출발, 목포항, 같은 배편 다른 고객 잔량 6칸 → 트럭 9칸 적재</p>
         <ol class="steps" id="ex-steps"></ol>
+      </section>
+      <section class="card span2">
+        <h3>출발항별 배편과 도선료</h3>
+        <div class="tablewrap">
+          <table class="left">
+            <thead><tr><th>출발항</th><th>제주행 배편 (출항 → 제주항 도착)</th><th>평일 도선료</th><th>일·공휴일</th><th>구분</th></tr></thead>
+            <tbody id="port-table"></tbody>
+          </table>
+        </div>
+        <p class="small muted">목포항 외 항로의 배편과 도선료는 서비스 확장을 위한 가정값입니다. 실제 운영 전 선사 확인이 필요합니다.</p>
       </section>
       <section class="card span2">
         <h3>가정값과 출처</h3>
         <div class="tablewrap">
-          <table class="wrap">
+          <table class="wrap left">
             <thead><tr><th>항목</th><th>값</th><th>구분</th></tr></thead>
             <tbody>
-              <tr><td>도선료 (목포→제주, 4.5톤 단축 적재, 월~토)</td><td>364,380원</td><td>실제 · 씨월드 (팀 확인)</td></tr>
-              <tr><td>도선료 (일·공휴일)</td><td>406,410원</td><td>실제 · 씨월드 (팀 확인)</td></tr>
-              <tr><td>배편 출항 시각</td><td>퀸제누비아2호 01:00, 퀸메리2호 08:30</td><td>실제 · 씨월드 홈페이지</td></tr>
-              <tr><td>제주항 도착 시각</td><td>01:00편 06:00, 08:30편 13:00</td><td>가정</td></tr>
+              <tr><td>목포→제주 도선료 (4.5톤 단축 적재)</td><td>월~토 364,380원 · 일·공휴일 406,410원</td><td>실제 · 씨월드 (팀 확인)</td></tr>
+              <tr><td>목포항 배편 출항 시각</td><td>퀸제누비아2호 01:00, 퀸메리2호 08:30</td><td>실제 · 씨월드 홈페이지</td></tr>
+              <tr><td>목포항 배편 제주항 도착 시각</td><td>01:00편 06:00, 08:30편 13:00</td><td>가정</td></tr>
+              <tr><td>도착항</td><td>제주항 단일</td><td>서비스 정책</td></tr>
               <tr><td>화물 마감 시각</td><td>출항 2시간 전</td><td>가정 (선사 확인 필요)</td></tr>
-              <tr><td>롤테이너 1칸 부피</td><td>1.2㎥</td><td>가정</td></tr>
-              <tr><td>트럭 1대</td><td>롤테이너 12칸</td><td>가정</td></tr>
-              <tr><td>하역비</td><td>칸당 3,000원</td><td>가정</td></tr>
-              <tr><td>최소 과금 단위</td><td>0.25칸</td><td>가정</td></tr>
-              <tr><td>합적 작업 / 하역·인계</td><td>1시간 / 2시간</td><td>가정</td></tr>
-              <tr><td>목포까지 육로 시간</td><td>수도권 5.0, 대전 3.5, 광주 1.0시간</td><td>대략값</td></tr>
-              <tr><td>제주항→목적지</td><td>제주시 0.5, 서귀포시 1.2, 동부·서부 1.0시간</td><td>가정</td></tr>
+              <tr><td>롤테이너 1칸 부피 · 트럭 1대</td><td>1.2㎥ · 롤테이너 12칸</td><td>가정</td></tr>
+              <tr><td>하역비 · 최소 과금 단위</td><td>칸당 3,000원 · 0.25칸</td><td>가정</td></tr>
+              <tr><td>합적 작업 / 제주항 하역·인계</td><td>1시간 / 2시간</td><td>가정</td></tr>
+              <tr><td>출발 지역 → 출발항 육로 시간</td><td>지역·항구별 대략값 (예: 수도권→목포항 5.0시간)</td><td>대략값</td></tr>
               <tr><td>다른 고객 물량, 파고·풍속, 결항 확률</td><td>시연용</td><td>가상 데이터</td></tr>
             </tbody>
           </table>
@@ -587,107 +638,73 @@ button.ghost:hover { border-color: var(--orange); }
   </div>
 </main>
 
-<!-- 고객 화면: 제주 → 육지 보내기 -->
-<main id="view-return" class="gutter" data-page="return" hidden>
+<!-- 운영자 A: 일일 현황 -->
+<main id="view-ops-daily" class="gutter" data-page="ops-daily" hidden>
   <div class="container">
     <div class="page-head">
       <div>
-        <h1>제주에서 육지로 보내기</h1>
-        <p class="lead">제주에 내려간 잇섬 트럭이 빈 채로 돌아오지 않도록, 육지로 갈 화물을 함께 실어 드립니다.</p>
+        <h1>일일 현황</h1>
+        <p class="lead">하루 동안 들어온 요청을 매칭이 끝난 화물과 아직 매칭이 필요한 화물로 나눠 봅니다.</p>
       </div>
-    </div>
-    <div class="layout">
-      <aside class="side">
-        <form id="rform" class="card" novalidate>
-          <h2>귀로 화물 요청</h2>
-          <label class="field"><span>보내는 분 (회사·이름)</span><input type="text" id="rq-name" maxlength="30" placeholder="예: 서귀포 감귤농원"></label>
-          <div class="fields">
-            <label class="field"><span>품목</span>
-              <select id="rq-item"><option>감귤</option><option>월동무</option><option>당근</option><option>양배추</option><option>브로콜리</option><option>수산물</option><option>생수·음료</option><option>기타</option></select>
-            </label>
-            <label class="field"><span>칸 수 (0.5칸 단위)</span><input type="number" id="rq-slots" min="0.5" max="24" step="0.5" value="2"></label>
-            <fieldset class="field wide">
-              <legend>온도</legend>
-              <div class="seg">
-                <label><input type="radio" name="rqtemp" value="ambient" checked><span>상온</span></label>
-                <label><input type="radio" name="rqtemp" value="cold"><span>냉장</span></label>
-              </div>
-            </fieldset>
-            <label class="field"><span>준비일</span><input type="date" id="rq-ready" min="2025-11-01" max="2026-12-31" value="2026-11-03"></label>
-            <label class="field"><span>도착 희망 지역</span><select id="rq-to"><option>수도권</option><option>대전</option><option>광주</option></select></label>
-          </div>
-          <p class="error" id="rq-error" hidden></p>
-          <button type="submit" class="primary">요청 접수하기</button>
-        </form>
-      </aside>
-      <div class="results">
-        <section class="card">
-          <h3>귀로 운임은 이렇게 정해집니다</h3>
-          <p>제주→목포 트럭 한 대의 적재 도선료 364,380원을 실린 칸 수 비율로 나누고, 칸당 하역비 3,000원을 더합니다. 실릴 귀로 트럭이 정해지면 운임이 확정됩니다.</p>
-          <p class="small muted">예: 트럭 12칸이 모두 차고 내 화물이 2칸이면 364,380원 × 2/12 + 6,000원 = 66,730원. 제주→목포 귀로 배편 시각(16:30, 01:00)은 가정값이며 선사 확인이 필요합니다.</p>
-        </section>
-        <div class="done" id="rq-done" hidden>
-          <span class="k">요청 번호</span>
-          <span class="code" id="rq-done-id">—</span>
-          <span class="small muted">요청은 이 브라우저에만 저장되는 시연용입니다.</span>
-        </div>
-        <section class="card">
-          <h3>이 브라우저의 귀로 요청</h3>
-          <div class="list" id="rq-list"></div>
-          <p class="small muted" id="rq-empty">아직 요청이 없습니다.</p>
-        </section>
-      </div>
-    </div>
-  </div>
-</main>
-
-<!-- 운영자 A: 주문 현황 -->
-<main id="view-ops-orders" class="gutter" data-page="ops-orders" hidden>
-  <div class="container">
-    <div class="page-head">
-      <div>
-        <h1>주문 현황</h1>
-        <p class="lead">고객 화면에서 들어온 예약(실제)과 시연용 주문(가상)을 함께 집계합니다.</p>
-      </div>
-      <div class="seg inline" role="radiogroup" aria-label="기간">
-        <label><input type="radio" name="operiod" value="today"><span>오늘</span></label>
-        <label><input type="radio" name="operiod" value="7"><span>최근 7일</span></label>
-        <label><input type="radio" name="operiod" value="28" checked><span>최근 4주</span></label>
-        <label><input type="radio" name="operiod" value="all"><span>전체</span></label>
+      <div class="ops-controls">
+        <label class="field"><span>날짜</span><select id="a-date"></select></label>
+        <label class="field"><span>출발항</span><select id="a-port"></select></label>
       </div>
     </div>
     <div class="results">
-      <div class="kpis" id="o-kpis"></div>
       <div class="grid2">
-        <section class="card span2">
-          <div class="card-head"><h3>일별 접수 칸 수</h3><span class="small muted" id="o-range">—</span></div>
-          <div class="chart" id="o-daily-slots"></div>
-          <div class="card-head"><h3>일별 접수 건수</h3></div>
-          <div class="chart" id="o-daily-count"></div>
-        </section>
-        <section class="card"><h3>출발 지역별 칸 수</h3><div class="hbars" id="o-hub"></div></section>
-        <section class="card"><h3>제주 목적지별 칸 수</h3><div class="hbars" id="o-dest"></div></section>
-        <section class="card"><h3>냉장 / 상온 비율</h3><div id="o-temp"></div></section>
-        <section class="card"><h3>고객별 누적 물량 상위 10</h3><div class="hbars" id="o-top"></div></section>
-        <section class="card span2">
-          <div class="card-head">
-            <h3>최근 주문</h3>
-            <div class="row">
-              <select id="o-status" aria-label="상태 필터" style="width: auto;">
-                <option value="">상태 전체</option><option>접수</option><option>배정</option><option>출항</option><option>도착</option><option>결항재배정</option>
-              </select>
-              <button type="button" class="ghost sm" id="o-csv">CSV 내려받기</button>
-            </div>
-          </div>
-          <div class="tablewrap">
-            <table>
-              <thead><tr><th>주문 번호</th><th>구분</th><th>접수</th><th>고객</th><th>경로</th><th>칸</th><th>온도</th><th>배편</th><th>상태</th></tr></thead>
-              <tbody id="o-table"></tbody>
-            </table>
-          </div>
-          <p class="small muted" id="o-table-note">—</p>
-        </section>
+        <div class="kgroup"><h3>육지 → 제주 <span class="small muted">출항일 기준</span></h3><div class="kpis" id="a-kpi-out"></div></div>
+        <div class="kgroup"><h3>제주 → 육지 <span class="small muted">준비일 기준</span></h3><div class="kpis" id="a-kpi-ret"></div></div>
       </div>
+      <section class="card">
+        <div class="card-head"><h3>매칭 완료 vs 매칭 필요 (칸 수)</h3><div class="legend"><span><i style="background: var(--orange);"></i>매칭 완료</span><span><i style="background: var(--need);"></i>매칭 필요</span></div></div>
+        <div class="srows" id="a-compare"></div>
+        <p class="small muted">매칭 완료: 트럭·배편이 확정된 화물(출항 마감이 지났거나 트럭 12칸이 가득 참). 매칭 필요: 아직 합적 중이거나 탈 배·트럭이 없는 화물.</p>
+      </section>
+      <section class="card">
+        <div class="card-head"><h3>AI 배분 엔진: 요청 화물을 어떻게 나눠 싣는가</h3><span class="row"><span class="tag syn">가상 데이터</span><span class="tag asm">시연 구현</span></span></div>
+        <div class="pipe" id="a-pipe"></div>
+        <div class="cmpbars" id="a-cmp"></div>
+        <p class="small muted" id="a-ai-note">—</p>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <h3>육지 → 제주 요청</h3>
+          <div class="row">
+            <div class="seg inline" role="radiogroup" aria-label="육지→제주 상태">
+              <label><input type="radio" name="aout" value="" checked><span>전체</span></label>
+              <label><input type="radio" name="aout" value="매칭 완료"><span>매칭 완료</span></label>
+              <label><input type="radio" name="aout" value="매칭 필요"><span>매칭 필요</span></label>
+            </div>
+            <button type="button" class="ghost sm" id="a-out-csv">CSV</button>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>주문 번호</th><th>구분</th><th>고객</th><th>출발</th><th>칸</th><th>온도</th><th>배편</th><th>상태</th><th>내용</th></tr></thead>
+            <tbody id="a-out-table"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <h3>제주 → 육지 요청</h3>
+          <div class="row">
+            <div class="seg inline" role="radiogroup" aria-label="제주→육지 상태">
+              <label><input type="radio" name="aret" value="" checked><span>전체</span></label>
+              <label><input type="radio" name="aret" value="매칭 완료"><span>매칭 완료</span></label>
+              <label><input type="radio" name="aret" value="매칭 필요"><span>매칭 필요</span></label>
+            </div>
+            <button type="button" class="ghost sm" id="a-ret-csv">CSV</button>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>요청 번호</th><th>구분</th><th>화주</th><th>도착</th><th>칸</th><th>온도</th><th>준비</th><th>상태</th><th>내용</th></tr></thead>
+            <tbody id="a-ret-table"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </div>
 </main>
@@ -698,9 +715,10 @@ button.ghost:hover { border-color: var(--orange); }
     <div class="page-head">
       <div>
         <h1>배송 계획</h1>
-        <p class="lead">그날 출항할 주문 전체를 냉장·상온 트럭과 배편에 배정합니다. 트럭 수(도선료 합)를 최소로, 그다음 첫 배 탑승 칸 수를 최대로 맞춥니다.</p>
+        <p class="lead">출발항별로 그날 출항할 주문 전체를 냉장·상온 트럭과 배편에 배정합니다. 트럭 수(도선료 합)를 최소로, 그다음 첫 배 탑승 칸 수를 최대로 맞춥니다.</p>
       </div>
       <div class="ops-controls">
+        <label class="field"><span>출발항</span><select id="p-port"></select></label>
         <label class="field"><span>출항일</span><select id="p-date"></select></label>
         <label class="field"><span>결항 확률 기준값 <output id="p-th-out">50%</output></span><input type="range" id="p-th" min="0.1" max="0.9" step="0.05" value="0.5"></label>
       </div>
@@ -708,7 +726,7 @@ button.ghost:hover { border-color: var(--orange); }
     <div class="results">
       <div class="alerts" id="p-alerts"></div>
       <section class="card">
-        <div class="card-head"><h3>경로 요약</h3><span class="small muted">출발 지역 → 목포 합적 지점 → 배편 → 제주항 → 목적지 권역</span></div>
+        <div class="card-head"><h3>경로 요약</h3><span class="small muted">출발 지역 → 출발항 합적 지점 → 배편 → 제주항</span></div>
         <div class="flow" id="p-route"></div>
       </section>
       <div class="grid2" id="p-sailings"></div>
@@ -716,14 +734,14 @@ button.ghost:hover { border-color: var(--orange); }
         <h3>결항 처리로 바뀐 주문</h3>
         <div class="tablewrap">
           <table>
-            <thead><tr><th>주문 번호</th><th>고객</th><th>칸</th><th>변경 전 배편</th><th>변경 전 도착</th><th>변경 후 배편</th><th>변경 후 도착</th></tr></thead>
+            <thead><tr><th>주문 번호</th><th>고객</th><th>칸</th><th>변경 전 배편</th><th>변경 전 인수 가능</th><th>변경 후 배편</th><th>변경 후 인수 가능</th></tr></thead>
             <tbody id="p-affected"></tbody>
           </table>
         </div>
-        <p class="small muted">실제 예약 고객의 바뀐 도착 예정은 저장되어, 고객 화면의 내 예약 조회에 바로 반영됩니다.</p>
+        <p class="small muted">실제 예약 고객의 바뀐 배편과 도착 예정은 저장되어, 고객 화면의 내 예약 조회에 바로 반영됩니다.</p>
       </section>
       <section class="card">
-        <div class="card-head"><h3>트럭 적재 그림</h3><span class="small muted">칸 안 숫자는 상차 순서입니다. 1번이 운전석 쪽, 큰 번호가 문 쪽이며 제주시 화물을 문 쪽에 둡니다.</span></div>
+        <div class="card-head"><h3>트럭 적재 그림</h3><span class="small muted">칸 안 숫자는 상차 순서입니다. 1번이 운전석 쪽(가장 먼저 실음), 큰 번호가 문 쪽입니다.</span></div>
         <div class="legend" id="p-legend"></div>
         <div class="truck-grid" id="p-trucks"></div>
       </section>
@@ -735,9 +753,7 @@ button.ghost:hover { border-color: var(--orange); }
             <tbody id="p-wx"></tbody>
           </table>
         </div>
-        <p class="small muted">결항 확률은 파고·풍속으로 계산하는 예시 식이며 고객 화면과 같은 식을 씁니다.</p>
       </section>
-      <p class="small muted">배정 방식: 같은 배편 안에서는 주문을 칸 단위로 나눠 여러 트럭에 실을 수 있게 두고, 어느 주문을 01:00편에 태울지는 모든 조합을 따져 고릅니다(OR-Tools 대신 브라우저에서 같은 목적을 직접 계산). 화물 마감은 출항 2시간 전(가정)입니다.</p>
     </div>
   </div>
 </main>
@@ -748,39 +764,39 @@ button.ghost:hover { border-color: var(--orange); }
     <div class="page-head">
       <div>
         <h1>복화 매칭 (제주 → 육지)</h1>
-        <p class="lead">제주에 도착한 트럭이 빈 채로 돌아가지 않도록 제주→육지 화물을 채웁니다.</p>
+        <p class="lead">제주에 도착한 트럭이 빈 채로 출발항에 돌아가지 않도록 육지행 화물을 채웁니다.</p>
       </div>
       <div class="ops-controls">
-        <label class="field"><span>출항일 (배송 계획 기준)</span><select id="bk-date"></select></label>
+        <label class="field"><span>제주항 도착일</span><select id="bk-date"></select></label>
       </div>
     </div>
     <div class="results">
-      <p class="notice">귀로 배편 <b>제주 16:30 · 01:00 출항</b>은 <span class="tag asm">가정</span> 값입니다(선사 확인 필요). 트럭은 제주 도착 후 하역 2시간을 마치고, 출항 2시간 전 마감에 맞출 수 있는 첫 귀로 배편을 탑니다.</p>
+      <p class="notice">제주 출항 시각(목포항행 16:30·01:00 등)은 <span class="tag asm">가정</span> 값입니다(선사 확인 필요). 트럭은 제주 도착 후 하역 2시간을 마치고, 출항 2시간 전 마감에 맞출 수 있는 첫 배로 자기 출발항에 돌아갑니다.</p>
       <div class="kpis" id="bk-kpis"></div>
       <section class="card">
-        <div class="card-head"><h3>귀로 트럭별 매칭</h3><span class="tag syn">귀로 요청 가상 데이터 포함</span></div>
+        <div class="card-head"><h3>육지행 트럭별 매칭</h3><span class="tag syn">육지행 요청 가상 데이터 포함</span></div>
         <div class="tablewrap">
           <table>
-            <thead><tr><th>트럭</th><th>온도</th><th>귀로 배편</th><th>실린 귀로 화물</th><th>적재율</th><th>귀로 운임 수입</th></tr></thead>
+            <thead><tr><th>트럭</th><th>온도</th><th>돌아가는 항구</th><th>제주 출항</th><th>실린 육지행 화물</th><th>적재율</th><th>운임 수입</th></tr></thead>
             <tbody id="bk-table"></tbody>
           </table>
         </div>
-        <p class="small muted">매칭 방식: 냉장·상온을 나눠, 준비일이 이른 요청부터 가장 먼저 떠나는 귀로 트럭에 칸 단위로 채웁니다. 늦게 떠나는 트럭일수록 더 많은 요청을 받을 수 있는 구조라, 이 순서가 매칭 칸 수를 최대로 만듭니다(최소비용 흐름과 같은 목적).</p>
+        <p class="small muted">매칭 방식: 냉장·상온을 나누고, 준비 시각이 이른 요청부터 원하는 항구로 가장 먼저 떠나는 트럭에 칸 단위로 채웁니다. 늦게 떠나는 트럭일수록 더 많은 요청을 받을 수 있는 구조라 이 순서가 매칭 칸 수를 최대로 만듭니다(최소비용 흐름과 같은 목적).</p>
       </section>
       <section class="card">
         <h3>매칭 대기 요청</h3>
         <div class="tablewrap">
           <table>
-            <thead><tr><th>요청</th><th>화주</th><th>품목</th><th>칸</th><th>온도</th><th>준비일</th><th>사유</th><th>조치</th></tr></thead>
+            <thead><tr><th>요청</th><th>화주</th><th>칸</th><th>온도</th><th>도착 희망</th><th>준비</th><th>사유</th><th>조치</th></tr></thead>
             <tbody id="bk-wait"></tbody>
           </table>
         </div>
       </section>
       <section class="card">
-        <div class="card-head"><h3>월별 귀로 화물 요청량과 귀로 공간</h3><span class="row"><span class="tag syn">요청량 가상</span><span class="tag asm">감귤·채소 지수 가정</span></span></div>
+        <div class="card-head"><h3>월별 육지행 요청량과 귀로 공간</h3><span class="row"><span class="tag syn">요청량 가상</span><span class="tag asm">계절 지수 가정</span></span></div>
         <div class="legend">
-          <span><i style="background: var(--orange);"></i>귀로 요청 칸 수</span>
-          <span><i style="background: var(--ink); height: 2px; vertical-align: 3px;"></i>귀로 공간 (10월 평균 트럭 수 × 12칸 × 일수)</span>
+          <span><i style="background: var(--orange);"></i>육지행 요청 칸 수</span>
+          <span><i style="background: var(--ink); height: 2px; vertical-align: 3px;"></i>귀로 공간 (하루 평균 트럭 수 × 12칸 × 일수)</span>
         </div>
         <div class="chart" id="bk-month"></div>
         <p class="small muted" id="bk-month-note">—</p>
@@ -795,7 +811,7 @@ button.ghost:hover { border-color: var(--orange); }
     <div class="page-head">
       <div>
         <h1>정산</h1>
-        <p class="lead">배송 계획대로 실린 트럭마다 도선료를 칸 수 비율로 나누고, 칸당 하역비를 더해 청구합니다. 혼자 보낼 때 비용을 넘지 않습니다.</p>
+        <p class="lead">출항을 마친 트럭마다 도선료를 칸 수 비율로 나누고, 칸당 하역비를 더해 청구합니다. 혼자 보낼 때 비용을 넘지 않습니다.</p>
       </div>
       <div class="ops-controls">
         <label class="field"><span>기간</span><select id="s-period"></select></label>
@@ -814,7 +830,7 @@ button.ghost:hover { border-color: var(--orange); }
         <p class="small" id="s-check">—</p>
       </section>
       <section class="card">
-        <h3>귀로 화주 정산 (제주 → 육지)</h3>
+        <h3>육지행 화주 정산 (제주 → 육지)</h3>
         <div class="tablewrap">
           <table>
             <thead><tr><th>화주</th><th>구분</th><th>칸</th><th>청구액</th><th>혼자 보냈을 때</th><th>절감액</th><th>절감률</th></tr></thead>
@@ -829,16 +845,31 @@ button.ghost:hover { border-color: var(--orange); }
 
 <script>
 (() => {
-  // ---- 데이터 (real: 도선료·배편·공휴일 / synthetic: 다른 고객 물량·기상) ----
-  const FARE = { weekday: 364380, holiday: 406410 };
-  const SLOTS = 12, HANDLING = 3000, MIN_UNIT = 0.25, MERGE_H = 1, HANDOVER_H = 2;
-  const HUB_HOURS = { '수도권': 5.0, '대전': 3.5, '광주': 1.0 };
-  const DEST_HOURS = { '제주시': 0.5, '서귀포시': 1.2, '제주 동부': 1.0, '제주 서부': 1.0 };
-  const SAILINGS = [
-    { id: 'night', ship: '퀸제누비아2호', dep: 60, arr: 360, label: '야간' },
-    { id: 'morning', ship: '퀸메리2호', dep: 510, arr: 780, label: '오전' },
+  // =====================================================================
+  // ---- 기본 값 ----
+  const SLOTS = 12, HANDLING = 3000, MIN_UNIT = 0.25, MERGE_H = 1, HANDOVER_H = 2, CUTOFF_BEFORE = 120, DAY = 1440;
+  // 출발항: 목포항만 실제 운임·배편, 나머지는 서비스 확장용 가정값
+  const PORTS = [
+    { id: 'mokpo', code: 'MP', name: '목포항', real: true, fare: 364380, holiday: 406410, empty: 278220, factor: 1, wxAdj: [0, 0],
+      sail: [{ key: 'n', ship: '퀸제누비아2호', label: '야간', dep: 60, dur: 300, wx: 'night' }, { key: 'm', ship: '퀸메리2호', label: '오전', dep: 510, dur: 270, wx: 'morning' }], ret: [60, 990], retDur: 300 },
+    { id: 'wando', code: 'WD', name: '완도항', real: false, fare: 330000, factor: 0.35, wxAdj: [-0.2, -0.5],
+      sail: [{ key: 'a', ship: '완도–제주 새벽편', label: '새벽', dep: 150, dur: 180 }, { key: 'b', ship: '완도–제주 오후편', label: '오후', dep: 900, dur: 180 }], ret: [600, 1200], retDur: 180 },
+    { id: 'yeosu', code: 'YS', name: '여수항', real: false, fare: 390000, factor: 0.4, wxAdj: [0.1, 0.3],
+      sail: [{ key: 'a', ship: '여수–제주 새벽편', label: '새벽', dep: 80, dur: 330 }], ret: [1020], retDur: 330 },
+    { id: 'busan', code: 'BS', name: '부산항', real: false, fare: 520000, factor: 0.45, wxAdj: [0.3, 0.8],
+      sail: [{ key: 'a', ship: '부산–제주 야간편', label: '야간', dep: 1140, dur: 660 }], ret: [1140], retDur: 660 },
+    { id: 'incheon', code: 'IC', name: '인천항', real: false, fare: 640000, factor: 0.3, wxAdj: [0.4, 1.0],
+      sail: [{ key: 'a', ship: '인천–제주 야간편', label: '야간', dep: 1110, dur: 810 }], ret: [1110], retDur: 810 },
   ];
-  const CUTOFF_BEFORE = 120;
+  PORTS.forEach((P) => { if (!P.holiday) P.holiday = Math.round(P.fare * 1.1153 / 10) * 10; if (!P.empty) P.empty = Math.round(P.fare * 0.7635 / 10) * 10; });
+  const P_BY = Object.fromEntries(PORTS.map((P) => [P.id, P]));
+  const REGIONS = ['수도권', '강원권', '충청권', '전북권', '광주·전남권', '대구·경북권', '부산·울산·경남권'];
+  // 지역 → 출발항 육로 시간(대략값). 순서: 목포, 완도, 여수, 부산, 인천
+  const REGION_HOURS = {
+    '수도권': [5.0, 5.5, 4.5, 4.5, 1.0], '강원권': [6.0, 6.5, 5.5, 5.0, 2.5], '충청권': [3.5, 4.0, 3.0, 3.5, 2.0], '전북권': [2.0, 2.5, 2.0, 3.5, 3.0],
+    '광주·전남권': [1.0, 1.5, 1.5, 3.0, 4.0], '대구·경북권': [3.5, 4.0, 2.5, 1.5, 3.5], '부산·울산·경남권': [3.5, 3.5, 2.0, 0.5, 4.5],
+  };
+  const hoursOf = (region, portId, custom) => (region === '기타' ? custom : REGION_HOURS[region][PORTS.findIndex((P) => P.id === portId)]);
   const HOLIDAYS = {
     '2025-12-25': '성탄절', '2026-01-01': '신정', '2026-02-16': '설날 연휴', '2026-02-17': '설날', '2026-02-18': '설날 연휴',
     '2026-03-01': '삼일절', '2026-03-02': '대체공휴일', '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '대체공휴일',
@@ -846,167 +877,253 @@ button.ghost:hover { border-color: var(--orange); }
     '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴', '2026-10-03': '개천절', '2026-10-05': '대체공휴일',
     '2026-10-09': '한글날', '2026-12-25': '성탄절',
   };
-  // 가상: 다른 고객 물량 [냉장 마감전, 냉장 마감후, 상온 마감전, 상온 마감후] × 5개사
+  // 가상: 목포항 다른 고객 물량 [냉장 마감전, 냉장 마감후, 상온 마감전, 상온 마감후] × 5개사 (4주 표본)
   const SHIP = {"2026-10-04":[[2,0,6,2],[1,1,3,0],[1,0,1,2],[0,1,1,0],[0,1,0,0]],"2026-10-05":[[3,1,7,6],[1,1,5,0],[0,0,1,0],[3,1,2,0],[0,1,0,0]],"2026-10-06":[[6,3,7,5],[5,2,4,3],[0,0,4,4],[2,1,2,1],[1,0,1,0]],"2026-10-07":[[3,3,11,8],[3,1,8,5],[2,1,5,0],[0,3,0,1],[0,0,0,0]],"2026-10-08":[[1,2,15,11],[3,2,8,3],[1,0,2,1],[2,3,1,1],[0,0,0,0]],"2026-10-09":[[4,1,5,6],[3,0,4,2],[0,0,2,2],[0,0,0,0],[0,1,0,0]],"2026-10-10":[[5,2,8,6],[0,1,2,5],[0,0,2,2],[0,1,2,0],[2,0,0,0]],"2026-10-11":[[3,3,6,4],[2,0,1,1],[0,0,1,0],[0,0,1,0],[0,0,1,0]],"2026-10-12":[[9,5,17,9],[2,5,6,3],[0,1,5,1],[2,0,1,1],[0,0,2,1]],"2026-10-13":[[7,7,10,9],[2,3,6,2],[1,0,5,2],[1,1,3,2],[2,0,1,0]],"2026-10-14":[[8,3,11,10],[0,1,4,2],[1,2,5,1],[1,2,1,0],[1,0,0,0]],"2026-10-15":[[6,4,11,8],[3,1,8,4],[0,0,1,0],[2,1,0,1],[0,0,1,2]],"2026-10-16":[[6,4,13,7],[0,1,2,5],[0,1,4,3],[0,2,2,1],[1,1,2,1]],"2026-10-17":[[6,2,6,3],[2,0,7,4],[0,1,2,0],[0,0,0,0],[0,0,1,0]],"2026-10-18":[[3,4,3,2],[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,0]],"2026-10-19":[[6,3,16,6],[0,1,6,4],[2,0,0,3],[2,0,0,0],[0,1,2,0]],"2026-10-20":[[4,6,10,7],[7,2,8,3],[1,2,2,1],[1,0,1,1],[0,0,0,0]],"2026-10-21":[[6,5,6,5],[2,0,10,2],[1,0,4,5],[2,0,3,0],[0,1,2,0]],"2026-10-22":[[9,2,10,7],[2,2,3,6],[1,0,5,1],[1,1,1,0],[0,0,0,0]],"2026-10-23":[[3,1,12,10],[3,1,9,6],[0,0,3,0],[2,0,1,0],[1,0,0,0]],"2026-10-24":[[5,1,5,11],[1,0,9,3],[0,1,3,2],[0,0,2,0],[0,0,0,0]],"2026-10-25":[[3,0,6,2],[1,1,2,1],[0,1,0,0],[0,0,1,0],[0,0,0,0]],"2026-10-26":[[4,5,9,8],[2,1,3,6],[1,0,9,1],[0,1,0,0],[0,0,1,0]],"2026-10-27":[[4,5,12,7],[0,3,5,3],[1,1,4,3],[2,0,1,1],[1,2,0,0]],"2026-10-28":[[5,4,14,10],[1,0,8,3],[0,0,4,0],[0,2,0,0],[0,0,0,1]],"2026-10-29":[[3,6,14,9],[3,0,6,3],[1,0,2,3],[4,1,1,1],[0,0,1,1]],"2026-10-30":[[5,2,15,7],[0,1,7,5],[0,1,1,0],[0,0,1,1],[0,0,0,1]],"2026-10-31":[[3,1,7,5],[0,0,5,2],[0,0,4,5],[0,3,1,0],[1,0,0,1]]};
-  // 가상: 일별 파고(m)·풍속(m/s). night = 그날 밤 출항(익일 01:00)편
+  // 가상: 일별 파고(m)·풍속(m/s)·결항 확률. night = 그날 밤 출항(익일 01:00)편
   const WX = {"2026-10-04":{"morning":[1.9,6,0.042],"night":[2.5,7.2,0.161]},"2026-10-05":{"morning":[2.1,9,0.102],"night":[1.8,10.6,0.075]},"2026-10-06":{"morning":[0.5,11,0.006],"night":[0.4,11.4,0.005]},"2026-10-07":{"morning":[0.4,10,0.004],"night":[0.1,10.6,0.002]},"2026-10-08":{"morning":[2,7,0.061],"night":[2.6,6.9,0.183]},"2026-10-09":{"morning":[1.6,6,0.023],"night":[2.1,5.8,0.06]},"2026-10-10":{"morning":[2.4,6,0.111],"night":[2.6,4.9,0.135]},"2026-10-11":{"morning":[2,10,0.1],"night":[1.8,11.0,0.08]},"2026-10-12":{"morning":[1.4,8,0.021],"night":[1.1,9.0,0.014]},"2026-10-13":{"morning":[2.3,9,0.148],"night":[2.7,9.3,0.298]},"2026-10-14":{"morning":[0.8,6,0.004],"night":[0.7,6.8,0.004]},"2026-10-15":{"morning":[2.3,5,0.078],"night":[1.8,5.6,0.032]},"2026-10-16":{"morning":[1.6,7,0.027],"night":[2.4,8.0,0.152]},"2026-10-17":{"morning":[3.6,14.8,0.883],"night":[3.7,16.4,0.926]},"2026-10-18":{"morning":[2.1,8,0.087],"night":[2,7.9,0.071]},"2026-10-19":{"morning":[2.4,4,0.08],"night":[3,5.1,0.272]},"2026-10-20":{"morning":[0.3,5,0.001],"night":[0.8,4.1,0.003]},"2026-10-21":{"morning":[1.8,6,0.034],"night":[1.5,6.1,0.019]},"2026-10-22":{"morning":[0.8,11,0.011],"night":[0.9,9.1,0.009]},"2026-10-23":{"morning":[1.1,11,0.02],"night":[1.1,12.2,0.024]},"2026-10-24":{"morning":[1,9,0.011],"night":[1.5,9.8,0.036]},"2026-10-25":{"morning":[1.4,3,0.009],"night":[2.1,1.7,0.03]},"2026-10-26":{"morning":[2.1,7,0.074],"night":[2.4,9.0,0.177]},"2026-10-27":{"morning":[1.8,5,0.029],"night":[2.5,4.9,0.112]},"2026-10-28":{"morning":[0.3,6,0.002],"night":[0.7,6.0,0.004]},"2026-10-29":{"morning":[1.8,8,0.048],"night":[1.5,9.5,0.034]},"2026-10-30":{"morning":[1.5,6,0.019],"night":[2.1,7.6,0.082]},"2026-10-31":{"morning":[2.1,9,0.102],"night":[2.9,15.6,0.668]}};
-  // 가상: 데이터 범위 밖 날짜에 쓰는 월평균 [파고, 풍속]
+  // 가상: 표본 밖 날짜에 쓰는 월평균 [파고, 풍속]
   const MONTH_WX = { 1: [2.3, 10.5], 2: [2.1, 10.0], 3: [1.7, 8.5], 4: [1.3, 7.0], 5: [1.1, 6.5], 6: [1.2, 6.5], 7: [1.5, 7.5], 8: [1.7, 8.0], 9: [1.6, 8.0], 10: [1.3, 7.0], 11: [1.7, 8.5], 12: [2.0, 9.5] };
-  const SAMPLE_START = '2026-10-04', SAMPLE_DAYS = 28;
 
   // ---- 시간 (분 단위, KST를 UTC 필드로 다룸) ----
-  const DAY = 1440;
   const parseDay = (s) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 60000;
   const keyOf = (t) => new Date(Math.floor(t / DAY) * DAY * 60000).toISOString().slice(0, 10);
+  const day0 = (t) => Math.floor(t / DAY) * DAY;
   const WD = '일월화수목금토';
   const fmtDate = (t) => { const d = new Date(t * 60000); return (d.getUTCMonth() + 1) + '월 ' + d.getUTCDate() + '일 (' + WD[d.getUTCDay()] + ')'; };
   const fmtTime = (t) => { const d = new Date(t * 60000); return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0'); };
   const fmtDT = (t) => fmtDate(t) + ' ' + fmtTime(t);
+  const fmtMD = (key) => { const d = new Date(parseDay(key) * 60000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + WD[d.getUTCDay()] + ')'; };
+  const addDays = (key, n) => keyOf(parseDay(key) + n * DAY);
+  const mmdd = (key) => key.slice(5, 7) + key.slice(8, 10);
+  const toMin = (ms) => Math.floor(ms / 60000) + 540;
+  const nowMin = () => toMin(Date.now());
   const won = (x) => Math.round(x).toLocaleString('ko-KR') + '원';
   const num = (x, d = 0) => Number(x).toLocaleString('ko-KR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const pct = (x) => (Math.round(x * 1000) / 10).toFixed(1) + '%';
   const slotsTxt = (x) => String(Math.round(x * 100) / 100) + '칸';
-
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const asmTag = (P) => (P.real ? '' : ' <span class="tag asm">가정</span>');
   const isHoliday = (key) => new Date(parseDay(key) * 60000).getUTCDay() === 0 || !!HOLIDAYS[key];
-  const truckCost = (depT, driver) => (isHoliday(keyOf(depT)) ? FARE.holiday : FARE.weekday) + driver;
+  const truckCost = (P, depT, driver = 0) => (isHoliday(keyOf(depT)) ? P.holiday : P.fare) + driver;
+  const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const rng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const pick = (r, items, w) => { let x = r() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < items.length; i++) { x -= w[i]; if (x < 0) return items[i]; } return items[items.length - 1]; };
+
+  // ---- 4주 가상 표본을 '오늘'이 들어가도록 같은 요일에 맞춰 옮김 (지난 3주 + 앞으로 1주) ----
+  const SAMPLE_BASE = parseDay('2026-10-04'), SAMPLE_DAYS = 28, TODAY0 = day0(nowMin());
+  const SHIFT = Math.round((TODAY0 - 20 * DAY - SAMPLE_BASE) / (7 * DAY)) * 7 * DAY;
+  const WIN0 = SAMPLE_BASE + SHIFT, WIN_END = WIN0 + SAMPLE_DAYS * DAY;
+  const inWin = (d) => d >= WIN0 && d < WIN_END;
+  const toWin = (d) => (inWin(d) ? d : WIN0 + ((((d - WIN0) / DAY) % SAMPLE_DAYS + SAMPLE_DAYS) % SAMPLE_DAYS) * DAY);
+  const WIN_KEYS = Array.from({ length: SAMPLE_DAYS }, (_, i) => keyOf(WIN0 + i * DAY));
 
   // ---- 결항 확률 (가상 기상 기반 예시 식) ----
   const logistic = (w, v) => 1 / (1 + Math.exp(-(-8.2 + 2.1 * w + 0.18 * v)));
+  const wxRow = (d) => (inWin(d) ? WX[keyOf(d - SHIFT)] : null);
   const wxFor = (s) => {
-    // 01:00편은 전날 밤 기상 행, 08:30편은 그날 기상 행
-    const wxDay = s.id === 'night' ? s.dep - DAY : s.dep;
-    const key = keyOf(wxDay);
-    const row = WX[key];
-    if (row) { const [w, v, p] = row[s.id]; return { w, v, p, sample: true }; }
-    const [w0, v0] = MONTH_WX[new Date(wxDay * 60000).getUTCMonth() + 1];
-    const w = s.id === 'night' ? w0 + 0.2 : w0, v = s.id === 'night' ? v0 + 0.6 : v0;
-    return { w, v, p: logistic(w, v), sample: false };
+    const P = s.P, d = day0(s.dep);
+    if (P.id === 'mokpo') {
+      const rd = s.wx === 'night' ? d - DAY : d, row = wxRow(rd);
+      if (row) { const [w, v, p] = row[s.wx]; return { w, v, p, sample: true }; }
+      const [w0, v0] = MONTH_WX[new Date(rd * 60000).getUTCMonth() + 1];
+      const w = s.wx === 'night' ? w0 + 0.2 : w0, v = s.wx === 'night' ? v0 + 0.6 : v0;
+      return { w, v, p: logistic(w, v), sample: false };
+    }
+    const row = wxRow(d), [w0, v0] = row ? row.morning : MONTH_WX[new Date(d * 60000).getUTCMonth() + 1];
+    const w = Math.max(0.1, w0 + P.wxAdj[0]), v = Math.max(0, v0 + P.wxAdj[1]);
+    return { w, v, p: logistic(w, v), sample: !!row };
   };
   const riskLevel = (p) => (p < 0.2 ? { cls: 'low', txt: '결항 위험 낮음' } : p <= 0.5 ? { cls: 'mid', txt: '결항 위험 주의' } : { cls: 'high', txt: '결항 위험 높음' });
 
-  // ---- 함께 실리는 다른 고객 잔량 ----
-  const othersFor = (s, temp) => {
-    // 08:30편은 그날 마감 전 도착분, 01:00편은 전날 마감 후 도착분
-    const opDay = s.id === 'night' ? s.dep - DAY : s.dep;
-    let key = keyOf(opDay), mapped = false;
-    if (!SHIP[key]) {
-      const base = parseDay(SAMPLE_START);
-      const idx = (((Math.floor(opDay / DAY) - base / DAY) % SAMPLE_DAYS) + SAMPLE_DAYS) % SAMPLE_DAYS;
-      key = keyOf(base + idx * DAY); mapped = true;
-    }
-    const col = (temp === 'cold' ? 0 : 2) + (s.id === 'night' ? 1 : 0);
-    return { slots: SHIP[key].reduce((a, r) => a + (r[col] % SLOTS), 0), key, mapped };
-  };
-
   // ---- 배편 ----
-  const sailingsAfter = (t) => {
-    const out = [], d0 = Math.floor(t / DAY) * DAY;
-    for (let k = -1; k <= 6; k++) for (const s of SAILINGS) {
-      const dep = d0 + k * DAY + s.dep;
-      out.push({ ...s, dep, arr: d0 + k * DAY + s.arr, cutoff: dep - CUTOFF_BEFORE });
-    }
+  const sailingsOn = (P, d) => P.sail.map((s, idx) => ({ ...s, P, idx, dep: d + s.dep, arr: d + s.dep + s.dur, cutoff: d + s.dep - CUTOFF_BEFORE }));
+  const sailingsAfter = (P, t) => {
+    const out = [], d = day0(t);
+    for (let k = -1; k <= 7; k++) out.push(...sailingsOn(P, d + k * DAY));
     return out.sort((a, b) => a.dep - b.dep).filter((s) => s.cutoff >= t);
   };
-  const schedule = (departT, hubH, destH, th) => {
-    const mokpo = departT + Math.round((hubH + MERGE_H) * 60);
-    const list = sailingsAfter(mokpo);
+  const sailName = (s) => `${s.P.name} ${fmtTime(s.dep)}`;
+
+  // ---- 가상 주문 (모든 출발항, 4주) ----
+  const COMPANIES = ['택배A', '택배B', '택배C', '화주D', '화주E'];
+  const CO_W = [[0.45, 0.08, 0.15, 0.08, 0.12, 0.07, 0.05], [0.25, 0.05, 0.35, 0.1, 0.1, 0.1, 0.05], [0.1, 0.02, 0.1, 0.2, 0.5, 0.04, 0.04], [0.8, 0.1, 0.1, 0, 0, 0, 0], [0, 0, 0.1, 0.2, 0.7, 0, 0]];
+  const SYN_ALL = [];
+  const addSyn = (id, r, ci, P, slots, reefer, arrive) => {
+    const pi = PORTS.indexOf(P);
+    const region = pick(r, REGIONS, CO_W[ci].map((w, j) => w * Math.exp(-REGION_HOURS[REGIONS[j]][pi] / 2.5)));
+    const created = arrive - Math.round((REGION_HOURS[region][pi] + MERGE_H) * 60) - (2 + Math.floor(r() * 20)) * 60;
+    SYN_ALL.push({ id, source: '가상', customer: COMPANIES[ci], region, port: P.id, slots, reefer, arrive, created, firstDep: sailingsAfter(P, arrive)[0].dep });
+  };
+  for (let i = 0; i < SAMPLE_DAYS; i++) {
+    const rows = SHIP[keyOf(SAMPLE_BASE + i * DAY)], d = WIN0 + i * DAY, dk = mmdd(keyOf(d));
+    if (!rows) continue;
+    rows.forEach((row, ci) => row.forEach((v, col) => {
+      if (!v) return;
+      const id = 'MP' + dk + '-' + ci + col, r = rng(hashStr(id));
+      // 마감 후 도착분은 그날 13:00~22:00(밤 01:00편), 마감 전 도착분은 전날 23:30~05:30(08:30편)
+      const arrive = col % 2 ? d + 780 + Math.floor(r() * 19) * 30 : d - 30 + Math.floor(r() * 13) * 30;
+      addSyn(id, r, ci, P_BY.mokpo, v, col < 2, arrive);
+    }));
+    const total = rows.reduce((a, row) => a + row.reduce((x, y) => x + y, 0), 0);
+    for (const P of PORTS.slice(1)) {
+      const r = rng(hashStr(P.id + dk));
+      const around = [...sailingsOn(P, d - DAY), ...sailingsOn(P, d)].sort((a, b) => a.dep - b.dep);
+      let left = Math.round(total * P.factor), n = 0;
+      while (left > 0) {
+        const v = Math.min(left, 1 + Math.floor(r() * 5)); left -= v; n++;
+        const s = sailingsOn(P, d)[Math.floor(r() * P.sail.length)], prev = around[around.findIndex((x) => x.dep === s.dep) - 1];
+        const arrive = Math.max(prev.cutoff + 30, s.cutoff - 30 * (1 + Math.floor(r() * 16)));
+        addSyn(P.code + dk + '-' + String(n).padStart(2, '0'), r, Math.floor(r() * COMPANIES.length), P, v, r() < 0.3, arrive);
+      }
+    }
+  }
+  // 배편별 다른 고객 잔량(견적용)과 요일 평균(물량 예측용)
+  const OTHERS = new Map(), DEP_TOTAL = new Map();
+  for (const o of SYN_ALL) {
+    const k = o.port + '|' + o.firstDep + '|' + (o.reefer ? 1 : 0);
+    OTHERS.set(k, (OTHERS.get(k) || 0) + (o.slots % SLOTS));
+    DEP_TOTAL.set(o.port + '|' + o.firstDep, (DEP_TOTAL.get(o.port + '|' + o.firstDep) || 0) + o.slots);
+  }
+  const othersFor = (s, temp) => {
+    const d = day0(s.dep), m = toWin(d), dep = m + (s.dep - d);
+    return { slots: OTHERS.get(s.P.id + '|' + dep + '|' + (temp === 'cold' ? 1 : 0)) || 0, mapped: !inWin(d) };
+  };
+  const forecastTotal = (s) => {
+    // 같은 출발항·같은 배편·같은 요일의 다른 주 평균 (가상 표본 기반)
+    const vals = [];
+    for (let k = -4; k <= 4; k++) { if (!k) continue; const dep = s.dep + k * 7 * DAY; if (inWin(day0(dep))) vals.push(DEP_TOTAL.get(s.P.id + '|' + dep) || 0); }
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  };
+
+  // ---- 일정 ----
+  const schedule = (P, departT, hubH, th) => {
+    const arrive = departT + Math.round((hubH + MERGE_H) * 60);
+    const list = sailingsAfter(P, arrive);
     let i = 0, moved = null;
-    const first = list[0], firstWx = wxFor(first);
-    if (firstWx.p > th) { moved = { from: first, p: firstWx.p }; i = 1; }
-    const s = list[i], wx = wxFor(s), next = list[i + 1];
-    const destArr = (x) => x.arr + Math.round((HANDOVER_H + destH) * 60);
-    return { mokpo, s, wx, moved, port: s.arr, dest: destArr(s), next, nextDest: destArr(next) };
+    const fw = wxFor(list[0]);
+    if (fw.p > th) { moved = { from: list[0], p: fw.p }; i = 1; }
+    const s = list[i], next = list[i + 1];
+    return { arrive, s, wx: wxFor(s), moved, port: s.arr, ready: s.arr + HANDOVER_H * 60, next, nextReady: next.arr + HANDOVER_H * 60 };
   };
 
   // ---- 운임 ----
   const share = (mine, others, cost) => {
-    const total = others + mine, trucks = Math.ceil(total / SLOTS);
+    const total = others + mine, trucks = Math.ceil(total / SLOTS - 1e-9);
     const raw = trucks * cost * mine / total + HANDLING * mine;
-    const solo = Math.ceil(mine / SLOTS) * cost;
+    const solo = Math.ceil(mine / SLOTS - 1e-9) * cost;
     return { total, trucks, raw, solo, fare: Math.min(raw, solo), capped: raw > solo };
   };
-  const fareAtLoad = (mine, load, trucks, cost) => Math.min(trucks * cost * mine / load + HANDLING * mine, Math.ceil(mine / SLOTS) * cost);
+  const lineSlots = (l, rollM3) => (l.type === 'roll' ? l.qty : l.type === 'box' ? l.qty * l.size / rollM3 : l.qty / rollM3);
+  const lineTxt = (l, rollM3) => (l.type === 'roll' ? `롤테이너 ${num(l.qty, l.qty % 1 ? 1 : 0)}칸` : l.type === 'box' ? `박스 ${num(l.qty)}개(약 ${num(lineSlots(l, rollM3), 2)}칸)` : `${num(l.qty, 1)}㎥(약 ${num(lineSlots(l, rollM3), 2)}칸)`);
+  const billSlots = (raw) => Math.max(MIN_UNIT, Math.ceil(raw / MIN_UNIT - 1e-9) * MIN_UNIT);
 
-  // ---- 입력 ----
+  const quote = (q) => {
+    const lines = (q.lines || []).filter((l) => l.qty > 0);
+    if (!lines.length) return { error: '화물을 한 가지 이상, 0보다 크게 입력해 주세요.' };
+    const raw = lines.reduce((a, l) => a + lineSlots(l, q.rollM3), 0);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date || '') || q.date > '2026-12-31') return { error: '출발 희망일을 2026년 12월 31일까지에서 골라 주세요.' };
+    if (!/^\d{2}:\d{2}$/.test(q.time || '')) return { error: '출발 시각을 입력해 주세요.' };
+    if (q.region === '기타' && !(q.hubHours >= 0)) return { error: '출발항까지 소요 시간을 입력해 주세요.' };
+    const mine = billSlots(raw);
+    const departT = parseDay(q.date) + (+q.time.slice(0, 2)) * 60 + (+q.time.slice(3, 5));
+    const evals = PORTS.map((P) => {
+      const sch = schedule(P, departT, hoursOf(q.region, P.id, q.hubHours), q.th), cost = truckCost(P, sch.s.dep, q.driver);
+      return { P, sch, cost, fare: share(mine, othersFor(sch.s, q.temp).slots, cost).fare };
+    });
+    // 추천: 예상 운임이 가장 낮은 출발항, 같으면 제주항 인수가 빠른 곳
+    const rec = [...evals].sort((a, b) => a.fare - b.fare || a.sch.ready - b.sch.ready)[0];
+    const chosen = q.port === 'auto' ? rec : evals.find((e) => e.P.id === q.port) || rec;
+    const { P, sch, cost } = chosen;
+    const oth = othersFor(sch.s, q.temp);
+    const sh = share(mine, oth.slots, cost);
+    const cap = sh.trucks * SLOTS;
+    const lowTotal = Math.max(mine, sh.total - 0.2 * cap);
+    const scen = { low: share(mine, lowTotal - mine, cost), exp: sh, full: share(mine, cap - mine, cost) };
+    const curve = [];
+    for (let m = 0.5; m <= 12.0001; m += 0.5) curve.push({ m, its: share(m, oth.slots, cost).fare, solo: Math.ceil(m / SLOTS - 1e-9) * cost });
+    return { q, lines, raw, mine, departT, P, sch, cost, oth, sh, scen, curve, rec };
+  };
+
+  // ---- 화물 줄 (추가·삭제) ----
   const $ = (id) => document.getElementById(id);
   const val = (name) => document.querySelector('input[name="' + name + '"]:checked').value;
+  const makeCargo = (root, onChange) => {
+    const rowsEl = root.querySelector('.cargo-rows');
+    const sync = (row) => {
+      const t = row.querySelector('.c-type').value, qty = row.querySelector('.c-qty');
+      row.querySelector('.c-size').style.visibility = t === 'box' ? '' : 'hidden';
+      row.querySelector('.c-unit').textContent = t === 'roll' ? '칸' : t === 'box' ? '개' : '㎥';
+      qty.step = t === 'roll' ? '0.5' : t === 'box' ? '1' : '0.1';
+    };
+    const updDel = () => { const rows = rowsEl.children; [...rows].forEach((r) => { r.querySelector('.c-del').disabled = rows.length === 1; }); };
+    const add = (l) => {
+      rowsEl.insertAdjacentHTML('beforeend', `<div class="cargo-row">
+        <select class="c-type" aria-label="화물 종류"><option value="roll">롤테이너</option><option value="box">박스</option><option value="m3">부피</option></select>
+        <input type="number" class="c-qty" min="0" aria-label="수량">
+        <select class="c-size" aria-label="박스 크기"><option value="0.03">소 0.03㎥</option><option value="0.06">중 0.06㎥</option><option value="0.12">대 0.12㎥</option></select>
+        <span class="c-unit"></span>
+        <button type="button" class="c-del" aria-label="이 화물 줄 삭제">×</button></div>`);
+      const row = rowsEl.lastElementChild;
+      row.querySelector('.c-type').value = l.type; row.querySelector('.c-qty').value = l.qty; row.querySelector('.c-size').value = String(l.size || 0.06);
+      sync(row);
+    };
+    const get = () => [...rowsEl.children].map((row) => ({ type: row.querySelector('.c-type').value, qty: +row.querySelector('.c-qty').value, size: +row.querySelector('.c-size').value }));
+    const set = (lines) => { rowsEl.innerHTML = ''; (lines && lines.length ? lines : [{ type: 'roll', qty: 3, size: 0.06 }]).forEach(add); updDel(); };
+    root.querySelector('.add').addEventListener('click', () => { add({ type: 'box', qty: 20, size: 0.06 }); updDel(); rowsEl.lastElementChild.querySelector('.c-qty').focus(); onChange(); });
+    rowsEl.addEventListener('change', (e) => { if (e.target.classList.contains('c-type')) sync(e.target.closest('.cargo-row')); onChange(); });
+    rowsEl.addEventListener('input', onChange);
+    rowsEl.addEventListener('click', (e) => { const b = e.target.closest('.c-del'); if (b && !b.disabled) { b.closest('.cargo-row').remove(); updDel(); onChange(); } });
+    set([]);
+    return { get, set };
+  };
+  const fillRegionPort = (regionSel, portSel, autoLabel) => {
+    regionSel.innerHTML = [...REGIONS, '기타'].map((r) => `<option value="${r}">${r === '기타' ? '기타 (직접 입력)' : r}</option>`).join('');
+    portSel.innerHTML = `<option value="auto">${autoLabel}</option>` + PORTS.map((P) => `<option value="${P.id}">${P.name}${P.real ? '' : ' (가정)'}</option>`).join('');
+  };
+
+  // ---- 입력 ----
+  let render = () => {};
+  const cargo = makeCargo($('q-cargo'), () => render());
+  fillRegionPort($('q-region'), $('q-port'), '자동 추천');
   const readInputs = () => ({
-    name: $('q-name').value.trim(), unit: val('unit'), rolls: +$('q-rolls').value, boxes: +$('q-boxes').value, boxSize: +$('q-boxsize').value, m3: +$('q-m3').value,
-    temp: val('temp'), hub: $('q-hub').value, hubHours: +$('q-hubhours').value, dest: $('q-dest').value,
+    name: $('q-name').value.trim(), lines: cargo.get(), temp: val('temp'), region: $('q-region').value, hubHours: +$('q-hubhours').value, port: $('q-port').value,
     date: $('q-date').value, time: $('q-time').value, rollM3: +$('c-roll').value || 1.2, driver: +$('c-driver').value || 0, th: +$('c-th').value || 0.5,
   });
   const writeInputs = (q) => {
-    document.querySelector('input[name="unit"][value="' + q.unit + '"]').checked = true;
+    if (!q.lines) return;
+    cargo.set(q.lines);
     document.querySelector('input[name="temp"][value="' + q.temp + '"]').checked = true;
-    $('q-rolls').value = q.rolls; $('q-boxes').value = q.boxes; $('q-boxsize').value = String(q.boxSize); $('q-m3').value = q.m3;
-    $('q-hub').value = q.hub; $('q-hubhours').value = q.hubHours; $('q-dest').value = q.dest; $('q-date').value = q.date; $('q-time').value = q.time;
-    $('c-roll').value = q.rollM3; $('c-driver').value = q.driver; $('c-th').value = q.th;
-    $('q-name').value = q.name || '';
+    $('q-name').value = q.name || ''; $('q-region').value = q.region; $('q-hubhours').value = q.hubHours; $('q-port').value = q.port;
+    $('q-date').value = q.date; $('q-time').value = q.time; $('c-roll').value = q.rollM3; $('c-driver').value = q.driver; $('c-th').value = q.th;
   };
+  const todayKey = keyOf(nowMin());
+  $('q-date').min = todayKey; $('q-date').value = addDays(todayKey, 1);
+  $('rq-date').min = todayKey; $('rq-date').value = addDays(todayKey, 1);
 
-  const quote = (q) => {
-    let raw;
-    if (q.unit === 'roll') raw = q.rolls;
-    else if (q.unit === 'box') raw = q.boxes * q.boxSize / q.rollM3;
-    else raw = q.m3 / q.rollM3;
-    if (!(raw > 0)) return { error: '화물량을 0보다 크게 입력해 주세요.' };
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date) || q.date < '2025-11-01' || q.date > '2026-12-31') return { error: '출발 희망일은 2025년 11월 1일부터 2026년 12월 31일 사이로 골라 주세요.' };
-    if (!/^\d{2}:\d{2}$/.test(q.time)) return { error: '출발 시각을 입력해 주세요.' };
-    const mine = Math.max(MIN_UNIT, Math.ceil(raw / MIN_UNIT - 1e-9) * MIN_UNIT);
-    const hubH = q.hub === '기타' ? q.hubHours : HUB_HOURS[q.hub];
-    if (!(hubH >= 0)) return { error: '목포까지 소요 시간을 입력해 주세요.' };
-    const departT = parseDay(q.date) + (+q.time.slice(0, 2)) * 60 + (+q.time.slice(3, 5));
-    const destH = DEST_HOURS[q.dest];
-    const sch = schedule(departT, hubH, destH, q.th);
-    const cost = truckCost(sch.s.dep, q.driver);
-    const oth = othersFor(sch.s, q.temp);
-    const sh = share(mine, oth.slots, cost);
-    const load = sh.total / (sh.trucks * SLOTS);
-    const lowLoad = Math.max(mine / (sh.trucks * SLOTS), load - 0.2) * sh.trucks * SLOTS;
-    const range = { low: fareAtLoad(mine, lowLoad, sh.trucks, cost), full: fareAtLoad(mine, sh.trucks * SLOTS, sh.trucks, cost) };
-    // 혼자: 바로 출발 / 차 찰 때까지 대기
-    const waitDays = mine >= SLOTS ? 0 : Math.ceil(SLOTS / mine) - 1;
-    const waitSch = schedule(departT + waitDays * DAY, hubH, destH, q.th);
-    const waitCost = mine >= SLOTS ? Math.ceil(mine / SLOTS) * truckCost(waitSch.s.dep, q.driver) : truckCost(waitSch.s.dep, q.driver) * mine / SLOTS;
-    const curve = [];
-    for (let m = 0.5; m <= 12.0001; m += 0.5) curve.push({ m, its: share(m, oth.slots, cost).fare, solo: Math.ceil(m / SLOTS) * cost });
-    return { q, raw, mine, hubH, departT, sch, cost, oth, sh, load, range, waitDays, waitSch, waitCost, curve };
-  };
-
-  // ---- 트럭 그림 (2열 × 6칸, 오른쪽이 운전석) ----
-  const truckSvg = (segments, opts = {}) => {
-    // segments: [{n, color}] 앞칸부터 채움, 합계 ≤ 12
-    const W = 420, H = 150, bx = 8, by = 16, bw = 300, bh = 100, cols = 6, rows = 2, gap = 4;
-    const cw = (bw - gap * (cols + 1)) / cols, ch = (bh - gap * (rows + 1)) / rows;
-    let cells = '';
-    for (let i = 0; i < SLOTS; i++) {
-      const c = Math.floor(i / rows), r = i % rows;
-      const x = bx + gap + c * (cw + gap), y = by + gap + r * (ch + gap);
-      cells += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="4" fill="var(--paper)" stroke="var(--line-strong)"/>`;
-      // 이 칸 [i, i+1) 안에 들어가는 구간 칠하기
-      let at = 0;
-      for (const sg of segments) {
-        const s0 = Math.max(at, i), s1 = Math.min(at + sg.n, i + 1);
-        if (s1 > s0) cells += `<rect x="${x + (s0 - i) * cw}" y="${y}" width="${(s1 - s0) * cw}" height="${ch}" rx="${s1 - s0 === 1 ? 4 : 2}" fill="${sg.color}"/>`;
-        at += sg.n;
-      }
-    }
-    const label = opts.label ? `<text x="${bx}" y="11" font-size="12" fill="var(--ink-muted)" font-family="inherit">${opts.label}</text>` : '';
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="${opts.aria || '트럭 적재 그림'}">
-      ${label}
-      <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="8" fill="var(--subtle)" stroke="var(--ink)" stroke-width="1.5"/>
-      ${cells}
-      <path d="M${bx + bw + 6} ${by + 30} h52 l30 34 v36 h-82 z" fill="var(--orange)" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round"/>
-      <rect x="${bx + bw + 16}" y="${by + 38}" width="34" height="20" rx="3" fill="var(--paper)"/>
-      <circle cx="${bx + 60}" cy="${by + bh + 14}" r="12" fill="var(--ink)"/><circle cx="${bx + 230}" cy="${by + bh + 14}" r="12" fill="var(--ink)"/><circle cx="${bx + bw + 50}" cy="${by + bh + 14}" r="12" fill="var(--ink)"/>
-      <circle cx="${bx + 60}" cy="${by + bh + 14}" r="4" fill="var(--paper)"/><circle cx="${bx + 230}" cy="${by + bh + 14}" r="4" fill="var(--paper)"/><circle cx="${bx + bw + 50}" cy="${by + bh + 14}" r="4" fill="var(--paper)"/>
-    </svg>`;
+  // ---- 그림: 트럭 공간 → 도선료 나누기 ----
+  const textW = (s) => [...s].reduce((a, c) => a + (/[가-힣]/.test(c) ? 12 : 7.2), 0);
+  const fareStrip = (segs, cap, cost) => {
+    const W = 290, y1 = 20, h1 = 32, y2 = 88, h2 = 26, loaded = segs.reduce((a, s) => a + s.n, 0), sx = W / cap;
+    let x = 0, x2 = 0;
+    const parts = segs.filter((s) => s.n > 0).map((s) => { const p = { ...s, x, w: s.n * sx, x2, w2: W * s.n / loaded }; x += p.w; x2 += p.w2; return p; });
+    const lab = (txt, cx, w, y, fill) => (w >= textW(txt) + 8 ? `<text x="${cx}" y="${y}" text-anchor="middle" fill="${fill}" font-weight="700">${txt}</text>` : '');
+    let s = `<svg viewBox="0 0 ${W} 136" width="100%" style="display:block;max-width:420px;font-family:inherit;font-size:12px" role="img" aria-label="트럭 ${cap}칸 중 ${parts.map((p) => p.label + ' ' + slotsTxt(p.n)).join(', ')} 적재, 도선료 ${won(cost)}를 실린 칸 수로 나눔">`;
+    s += `<text x="0" y="11" fill="var(--ink-muted)">트럭 공간 ${cap}칸${cap > SLOTS ? ` (트럭 ${cap / SLOTS}대)` : ''}</text>`;
+    s += `<rect x="0.5" y="${y1}" width="${W - 1}" height="${h1}" rx="4" fill="var(--paper)" stroke="var(--line-strong)" stroke-dasharray="3 3"/>`;
+    parts.forEach((p) => { s += `<path d="M${p.x} ${y1 + h1} L${p.x + p.w} ${y1 + h1} L${p.x2 + p.w2} ${y2} L${p.x2} ${y2} Z" fill="${p.color}" opacity=".16"/>`; });
+    parts.forEach((p) => { s += `<rect x="${p.x}" y="${y1}" width="${Math.max(1, p.w - 2)}" height="${h1}" rx="3" fill="${p.color}"/>`; });
+    for (let i = 1; i < cap; i++) { const xx = i * sx; s += i % SLOTS === 0 ? `<line x1="${xx}" x2="${xx}" y1="${y1 - 3}" y2="${y1 + h1 + 3}" stroke="var(--ink)" stroke-width="2"/>` : `<line x1="${xx}" x2="${xx}" y1="${y1 + 4}" y2="${y1 + h1 - 4}" stroke="${i < loaded ? 'rgba(255,255,255,.55)' : 'var(--line)'}"/>`; }
+    parts.forEach((p) => { s += lab(`${p.label} ${slotsTxt(p.n)}`, p.x + p.w / 2, p.w, y1 + h1 / 2 + 4, p.ink || '#fff'); });
+    if (cap - loaded > 1e-9) s += lab(`빈 칸 ${slotsTxt(cap - loaded)}`, x + (W - x) / 2, W - x, y1 + h1 / 2 + 4, 'var(--ink-muted)');
+    parts.forEach((p) => { s += `<rect x="${p.x2}" y="${y2}" width="${Math.max(1, p.w2 - 2)}" height="${h2}" rx="3" fill="${p.color}"/>`; s += lab(won(cost * p.n / loaded), p.x2 + p.w2 / 2, p.w2, y2 + h2 / 2 + 4, p.ink || '#fff'); });
+    s += `<text x="0" y="${y2 + h2 + 16}" fill="var(--ink-muted)">도선료 ${won(cost)}을 실린 ${slotsTxt(loaded)}로 나눔</text></svg>`;
+    return s;
   };
 
   // ---- 그래프 ----
   const drawCurve = (r) => {
     const el = $('curve');
-    const W = Math.max(280, el.clientWidth || 600), H = 230, m = { t: 12, r: 12, b: 34, l: 0 };
+    const W = Math.max(280, el.clientWidth || 480), H = 230, m = { t: 12, r: 12, b: 34, l: 0 };
     const yMax = Math.max(...r.curve.map((d) => Math.max(d.its, d.solo))) * 1.08;
     const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(yMax * f / 10000) * 10000);
     const ctx = document.createElement('canvas').getContext('2d');
@@ -1018,18 +1135,16 @@ button.ghost:hover { border-color: var(--orange); }
     for (const v of ticks) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v ? 'var(--line)' : 'var(--line-strong)'}"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end" fill="var(--ink-muted)">${num(v / 10000)}만</text>`;
     for (const v of [0.5, 3, 6, 9, 12]) s += `<text x="${x(v)}" y="${H - m.b + 18}" text-anchor="${v === 12 ? 'end' : v === 0.5 ? 'start' : 'middle'}" fill="var(--ink-muted)">${v}칸</text>`;
     const path = (k) => r.curve.map((d, i) => (i ? 'L' : 'M') + x(d.m).toFixed(1) + ' ' + y(d[k]).toFixed(1)).join(' ');
-    const area = path('its') + ` L${x(12)} ${y(0)} L${x(0.5)} ${y(0)} Z`;
-    s += `<path d="${area}" fill="var(--orange)" fill-opacity=".10"/>`;
+    s += `<path d="${path('its')} L${x(12)} ${y(0)} L${x(0.5)} ${y(0)} Z" fill="var(--orange)" fill-opacity=".10"/>`;
     s += `<path d="${path('solo')}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>`;
     s += `<path d="${path('its')}" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    const cm = Math.min(12, Math.max(0.5, r.mine));
-    const ci = share(cm, r.oth.slots, r.cost).fare;
+    const cm = Math.min(12, Math.max(0.5, r.mine)), ci = share(cm, r.oth.slots, r.cost).fare;
     s += `<line x1="${x(cm)}" x2="${x(cm)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--orange-deep)" stroke-dasharray="3 3"/>`;
     s += `<circle cx="${x(cm)}" cy="${y(ci)}" r="5" fill="var(--orange-deep)" stroke="var(--paper)" stroke-width="2"/>`;
-    s += `<rect class="hit" x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent"/></svg>`;
+    s += `<rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent"/></svg>`;
     el.innerHTML = s + '<div class="tip" hidden></div>';
     const tip = el.querySelector('.tip'), svg = el.querySelector('svg');
-    svg.addEventListener('mousemove', (ev) => {
+    svg.onmousemove = (ev) => {
       const b = svg.getBoundingClientRect(), px = (ev.clientX - b.left) * W / b.width;
       const mm = Math.min(12, Math.max(0.5, Math.round(((px - m.l) / (W - m.l - m.r) * 11.5 + 0.5) * 2) / 2));
       const d = r.curve.find((c) => Math.abs(c.m - mm) < 1e-6);
@@ -1038,18 +1153,18 @@ button.ghost:hover { border-color: var(--orange); }
       tip.hidden = false;
       let lx = ev.clientX - b.left + 12; if (lx + tip.offsetWidth > b.width) lx = ev.clientX - b.left - tip.offsetWidth - 12;
       tip.style.left = Math.max(0, lx) + 'px'; tip.style.top = '8px';
-    });
-    svg.addEventListener('mouseleave', () => { tip.hidden = true; });
+    };
+    svg.onmouseleave = () => { tip.hidden = true; };
   };
 
   // ---- 단계 (1 화물 정보 → 2 운임 확인 → 3 계산 근거) ----
   let current = null, step = 1;
   const paintStepper = () => {
     document.querySelectorAll('#stepper li').forEach((li) => {
-      const k = +li.dataset.step;
+      const k = +li.dataset.step, b = li.querySelector('button');
       li.className = k === step ? 'on' : k < step ? 'past' : '';
-      li.querySelector('button').disabled = k > 1 && !current;
-      if (k === step) li.querySelector('button').setAttribute('aria-current', 'step'); else li.querySelector('button').removeAttribute('aria-current');
+      b.disabled = k > 1 && !current;
+      if (k === step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
     });
   };
   const goStep = (n) => {
@@ -1063,89 +1178,79 @@ button.ghost:hover { border-color: var(--orange); }
   };
   document.addEventListener('click', (e) => { const g = e.target.closest('[data-goto]'); if (g && !g.disabled) goStep(+g.dataset.goto); });
 
-  // ---- 결과 그리기 ----
-  const render = () => {
+  // ---- 견적 결과 ----
+  render = () => {
     const q = readInputs();
-    $('row-roll').hidden = q.unit !== 'roll'; $('row-box').hidden = q.unit !== 'box'; $('row-m3').hidden = q.unit !== 'm3';
-    $('row-hubhours').hidden = q.hub !== '기타';
-    const r = quote(q);
+    $('row-hubhours').hidden = q.region !== '기타';
+    let r = quote(q);
+    if (!r.error && q.date < todayKey) r = { error: '출발 희망일은 오늘 이후로 골라 주세요.' };
     $('q-error').hidden = !r.error; $('result').hidden = !!r.error; $('to2').disabled = !!r.error;
-    if (r.error) { $('q-error').textContent = r.error; $('convert').textContent = '—'; current = null; if (step > 1) goStep(1); else paintStepper(); return; }
+    if (r.error) { $('q-error').textContent = r.error; $('convert').textContent = '—'; $('port-hint').textContent = ''; current = null; if (step > 1) goStep(1); else paintStepper(); return; }
     current = r;
     paintStepper();
     $('booked').hidden = true;
-    $('summary-txt').textContent = `${q.temp === 'cold' ? '냉장' : '상온'} ${slotsTxt(r.mine)} · ${q.hub} → ${q.dest} · ${fmtDate(r.departT)} ${q.time} 출발`;
-    const m3 = r.mine * q.rollM3;
-    $('convert').innerHTML = q.unit === 'roll'
-      ? `과금 칸 수 <b>${slotsTxt(r.mine)}</b> (약 ${num(m3, 1)}㎥, 1칸 = ${num(q.rollM3, 1)}㎥)`
-      : `약 ${num(r.raw, 2)}칸으로 환산 → 과금 칸 수 <b>${slotsTxt(r.mine)}</b> (0.25칸 단위 올림)`;
+    $('convert').innerHTML = `${r.lines.map((l) => lineTxt(l, q.rollM3)).join(' + ')} → 과금 <b>${slotsTxt(r.mine)}</b> (0.25칸 단위 올림, 약 ${num(r.mine * q.rollM3, 1)}㎥)`;
+    $('port-hint').innerHTML = q.port === 'auto'
+      ? `추천 출발항 <b>${r.P.name}</b>${asmTag(r.P)} · 예상 운임이 가장 낮음 · 제주항 ${fmtDT(r.sch.ready)} 인수 가능`
+      : `${r.P.name}${asmTag(r.P)} · 제주항 ${fmtDT(r.sch.ready)} 인수 가능${r.rec.P.id !== r.P.id ? ` · 예상 운임이 가장 낮은 곳은 ${r.rec.P.name} (${won(r.rec.fare)})` : ''}`;
+    $('summary-txt').textContent = `${q.temp === 'cold' ? '냉장' : '상온'} ${slotsTxt(r.mine)} · ${q.region} → ${r.P.name} → 제주항 · ${fmtDate(r.departT)} ${q.time} 출발`;
 
+    // 2단계
     const save = r.sh.solo - r.sh.fare;
     $('r-fare').textContent = won(r.sh.fare);
-    $('r-range').textContent = '트럭이 덜 차면 ' + won(r.range.low) + ', 꽉 차면 ' + won(r.range.full);
-    $('r-save').textContent = won(save) + ' 절감';
-    $('r-save-pct').textContent = pct(save / r.sh.solo) + ' 적게 냅니다';
+    $('r-range').textContent = `예상 범위 ${won(r.scen.full.fare)} ~ ${won(r.scen.low.fare)}`;
+    $('r-save').textContent = won(save);
+    $('r-save-pct').textContent = pct(save / r.sh.solo) + ' 절감';
     $('r-solo').textContent = won(r.sh.solo);
-    $('r-solo-sub').textContent = '트럭 ' + Math.ceil(r.mine / SLOTS) + '대를 혼자 띄울 때 도선료';
-
     const lv = riskLevel(r.sch.wx.p);
     $('r-risk').className = 'badge ' + lv.cls; $('r-risk').textContent = lv.txt + ' ' + pct(r.sch.wx.p);
+    $('r-portname').innerHTML = r.P.name + asmTag(r.P);
     $('r-ship').textContent = r.sch.s.ship + ' (' + r.sch.s.label + ' 배편, ' + (q.temp === 'cold' ? '냉장' : '상온') + ' 합적 트럭)';
-    $('r-mokpo').textContent = fmtDT(r.sch.mokpo) + ' · 화물 마감 ' + fmtTime(r.sch.s.cutoff);
-    $('r-dep').textContent = fmtDT(r.sch.s.dep) + ' 목포항';
+    $('r-arrive').textContent = fmtDT(r.sch.arrive) + ' · 화물 마감 ' + fmtDT(r.sch.s.cutoff);
+    $('r-dep').textContent = fmtDT(r.sch.s.dep);
     $('r-port').textContent = fmtDT(r.sch.port);
-    $('r-dest').textContent = fmtDT(r.sch.dest) + ' ' + q.dest;
+    $('r-ready').textContent = fmtDT(r.sch.ready);
     $('r-moved').hidden = !r.sch.moved;
     if (r.sch.moved) $('r-moved').textContent = `${fmtDT(r.sch.moved.from.dep)} ${r.sch.moved.from.ship}의 결항 확률이 ${pct(r.sch.moved.p)}로 기준값 ${pct(q.th)}를 넘어, 다음 배편으로 미리 옮겼습니다.`;
     $('r-highnote').hidden = lv.cls !== 'high';
-    if (lv.cls === 'high') $('r-highnote').textContent = `이 배편도 결항되면 다음 배편 ${r.sch.next.ship} ${fmtDT(r.sch.next.dep)} 출항, 목적지 도착 ${fmtDT(r.sch.nextDest)} 예정입니다.`;
+    if (lv.cls === 'high') $('r-highnote').textContent = `이 배편도 결항되면 다음 배편 ${r.sch.next.ship} ${fmtDT(r.sch.next.dep)} 출항, 제주항 ${fmtDT(r.sch.nextReady)} 인수 가능 예정입니다.`;
 
-    // 트럭 그림
-    let figs = '', othLeft = r.oth.slots, mineLeft = r.mine;
-    for (let k = 0; k < r.sh.trucks; k++) {
-      const o = Math.min(SLOTS, othLeft); othLeft -= o;
-      const mm = Math.min(SLOTS - o, mineLeft); mineLeft -= mm;
-      figs += truckSvg([{ n: o, color: 'var(--others)' }, { n: mm, color: 'var(--orange)' }], { label: r.sh.trucks > 1 ? `트럭 ${k + 1}` : '', aria: `트럭 12칸 중 다른 고객 ${o}칸, 내 화물 ${mm}칸` });
-    }
-    $('truck-fig').innerHTML = figs;
-
+    // 3단계: 적재율 시나리오
+    const scenCard = (title, sh, on) => {
+      const cap = sh.trucks * SLOTS, others = sh.total - r.mine, mineShare = sh.trucks * r.cost * r.mine / sh.total;
+      return `<div class="card${on ? ' on' : ''}"><div class="card-head"><span class="k">${title}</span>${on ? '<span class="tag real">지금 예상</span>' : ''}</div>
+        <span class="num">${won(sh.fare)}</span>
+        <span class="s">트럭 ${slotsTxt(sh.total)} / ${cap}칸 적재 · 적재율 ${pct(sh.total / cap)}</span>
+        ${fareStrip([{ label: '다른 고객', n: others, color: 'var(--others)', ink: '#3E2723' }, { label: '나', n: r.mine, color: 'var(--orange)' }], cap, sh.trucks * r.cost)}
+        <span class="split">내 몫 <b>${won(mineShare)}</b> + 하역비 <b>${won(HANDLING * r.mine)}</b>${sh.capped ? ' → 혼자 보낼 때 비용으로 상한' : ''}</span></div>`;
+    };
+    $('scen').innerHTML = scenCard('트럭이 덜 찰 때', r.scen.low, false) + scenCard('지금 예상', r.scen.exp, true) + scenCard('트럭이 꽉 찰 때', r.scen.full, false);
+    $('scen-sub').textContent = `덜 찰 때 = 지금 예상보다 적재율 20%p 낮음 · 꽉 찰 때 = 트럭 ${r.sh.trucks * SLOTS}칸이 모두 참`;
     const fareName = isHoliday(keyOf(r.sch.s.dep)) ? '일·공휴일' : '월~토';
-    const stepsHtml = [
-      ['트럭 1회 비용', won(r.cost), `목포→제주 4.5톤 단축 적재 ${fareName} 도선료 ${won(r.cost - q.driver)}${q.driver ? ' + 기사 승선료 ' + won(q.driver) : ''}`],
-      ['트럭 예상 적재', `${slotsTxt(r.sh.total)} / ${r.sh.trucks * SLOTS}칸`, `같은 배편 ${q.temp === 'cold' ? '냉장' : '상온'} 다른 고객 잔량 ${slotsTxt(r.oth.slots)} + 내 화물 ${slotsTxt(r.mine)} · 적재율 ${pct(r.load)}${r.sh.trucks > 1 ? ` · 12칸을 넘어 트럭 ${r.sh.trucks}대 사용` : ''}`],
+    $('steps').innerHTML = [
+      ['트럭 1회 비용', won(r.cost), `${r.P.name}→제주항 4.5톤 단축 적재 ${fareName} 도선료 ${won(r.cost - q.driver)}${r.P.real ? '' : ' (가정)'}${q.driver ? ' + 기사 승선료 ' + won(q.driver) : ''}`],
+      ['트럭 예상 적재', `${slotsTxt(r.sh.total)} / ${r.sh.trucks * SLOTS}칸`, `같은 배편 ${q.temp === 'cold' ? '냉장' : '상온'} 다른 고객 잔량 ${slotsTxt(r.oth.slots)} + 내 화물 ${slotsTxt(r.mine)}${r.sh.trucks > 1 ? ` · 12칸을 넘어 트럭 ${r.sh.trucks}대 사용` : ''}`],
       ['내 부피 비율', pct(r.mine / r.sh.total), `${slotsTxt(r.sh.total)} 중 ${slotsTxt(r.mine)}`],
       ['도선료 분담', won(r.sh.trucks * r.cost * r.mine / r.sh.total), `${won(r.sh.trucks * r.cost)} × ${pct(r.mine / r.sh.total)}`],
       ['하역비', won(HANDLING * r.mine), `칸당 3,000원 × ${slotsTxt(r.mine)}`],
-    ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('');
-    const capNote = r.sh.capped ? `<span class="d">계산값 ${won(r.sh.raw)}이 혼자 보낼 때 비용 ${won(r.sh.solo)}을 넘어 상한까지 깎았습니다.</span>` : '';
-    $('steps').innerHTML = stepsHtml + `<li class="total"><span>내 운임</span><span class="v">${won(r.sh.fare)}</span>${capNote}</li>`;
-
-    const waitTxt = r.waitDays ? `약 ${r.waitDays}일` : '없음';
-    $('cmp').innerHTML = [
-      ['잇섬 공동운송', won(r.sh.fare), '없음', fmtDT(r.sch.dest), true],
-      ['혼자 트럭', won(r.sh.solo), '없음', fmtDT(r.sch.dest), false],
-      ['차 찰 때까지 대기', won(r.waitCost), waitTxt, fmtDT(r.waitSch.dest), false],
-    ].map(([a, b, c, d, us]) => `<tr class="${us ? 'us' : ''}"><td>${a}</td><td>${b}</td><td>${c}</td><td>${d}</td></tr>`).join('');
-
+    ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('')
+      + `<li class="total"><span>내 운임</span><span class="v">${won(r.sh.fare)}</span>${r.sh.capped ? `<span class="d">계산값 ${won(r.sh.raw)}이 혼자 보낼 때 비용 ${won(r.sh.solo)}을 넘어 상한까지 깎았습니다.</span>` : ''}</li>`;
     const wxSrc = r.sch.wx.sample ? '그날의 가상 기상값' : `${new Date(r.sch.s.dep * 60000).getUTCMonth() + 1}월 평균 가상 기상값`;
-    $('data-note').textContent = `함께 실릴 다른 고객 물량은 가상 데이터${r.oth.mapped ? '(2026년 10월 같은 요일 값)' : ''}로 추정했습니다. 결항 확률은 ${wxSrc}(파고 ${num(r.sch.wx.w, 1)}m, 풍속 ${num(r.sch.wx.v, 1)}m/s)으로 계산했습니다.`;
-    drawCurve(r);
+    $('data-note').textContent = `함께 실릴 다른 고객 물량은 가상 데이터${r.oth.mapped ? '(표본 기간의 같은 요일 값)' : ''}로 추정했습니다. 결항 확률은 ${wxSrc}(파고 ${num(r.sch.wx.w, 1)}m, 풍속 ${num(r.sch.wx.v, 1)}m/s)으로 계산했습니다.${r.P.real ? '' : ` ${r.P.name} 배편·도선료는 가정값입니다.`}`;
+    if (step === 3) drawCurve(r);
   };
 
   // ---- 예약 (이 브라우저에만 저장) ----
-  const STORE = 'itsum-bookings';
+  const STORE = 'itsum-bookings-v2';
   const loadBookings = () => { try { return JSON.parse(localStorage.getItem(STORE) || '[]'); } catch (e) { return []; } };
   const saveBookings = (list) => { try { localStorage.setItem(STORE, JSON.stringify(list)); return true; } catch (e) { return false; } };
   let memory = loadBookings();
-  const newId = (r) => {
-    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let s = ''; for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)];
-    return 'IS' + keyOf(r.sch.s.dep).slice(2).replace(/-/g, '') + '-' + s;
-  };
+  const randId = () => { const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)]; return s; };
+  let bumpOps = () => {}, syncOverrides = () => {};
   document.querySelectorAll('.book-btn').forEach((btn) => btn.addEventListener('click', () => {
     if (!current) return;
-    const r = current, id = newId(r);
-    memory = [{ id, created: Date.now(), name: r.q.name || '고객', q: r.q, mine: r.mine, fare: r.sh.fare, solo: r.sh.solo, ship: r.sch.s.ship, dep: r.sch.s.dep, dest: r.sch.dest, risk: riskLevel(r.sch.wx.p).cls }, ...memory];
+    const r = current, id = 'IS' + keyOf(r.sch.s.dep).slice(2).replace(/-/g, '') + '-' + randId();
+    memory = [{ id, created: Date.now(), name: r.q.name || '고객', q: r.q, port: r.P.id, mine: r.mine, fare: r.sh.fare, solo: r.sh.solo, ship: r.sch.s.ship, dep: r.sch.s.dep, risk: riskLevel(r.sch.wx.p).cls }, ...memory];
     saveBookings(memory);
     bumpOps(); syncOverrides();
     $('booked-id').textContent = id; $('booked').hidden = false;
@@ -1159,33 +1264,33 @@ button.ghost:hover { border-color: var(--orange); }
     const b = memory.find((x) => x.id === id.trim().toUpperCase());
     $('b-error').hidden = !!b; $('b-result').hidden = !b; $('b-placeholder').hidden = !!b;
     if (!b) { $('b-error').textContent = '이 브라우저에서 그 예약 번호를 찾지 못했습니다. 번호를 다시 확인해 주세요.'; return; }
-    const r = quote(b.q);
-    const ov = b.override;
-    const wxNow = ov ? wxFor({ id: ov.ship === SAILINGS[0].ship ? 'night' : 'morning', dep: ov.dep }) : r.sch.wx;
-    const lv = riskLevel(wxNow.p);
-    const dep = ov ? ov.dep : r.sch.s.dep, port = ov ? ov.arr : r.sch.port, now = nowMin();
+    const r = quote({ ...b.q, port: b.port });
+    const P = P_BY[b.port], ov = b.override;
+    const sNow = ov ? sailingsOn(P, day0(ov.dep)).find((s) => s.dep === ov.dep) : r.sch.s;
+    const wxNow = wxFor(sNow), lv = riskLevel(wxNow.p), now = nowMin();
     $('b-code').textContent = b.id;
     $('b-risk').className = 'badge ' + lv.cls; $('b-risk').textContent = lv.txt + ' ' + pct(wxNow.p);
-    $('b-status').textContent = ov ? '결항재배정' : now < dep - DAY ? '접수' : now < dep ? '배정' : now < port ? '출항' : '도착';
-    $('b-qty').textContent = slotsTxt(b.mine) + ' · ' + (b.q.temp === 'cold' ? '냉장' : '상온') + ' · ' + b.q.hub + ' → ' + b.q.dest;
+    $('b-status').textContent = ov ? '결항재배정' : now < sNow.dep - DAY ? '접수' : now < sNow.dep ? '배정' : now < sNow.arr ? '출항' : '도착';
+    $('b-qty').textContent = slotsTxt(b.mine) + ' · ' + (b.q.temp === 'cold' ? '냉장' : '상온') + ' · ' + b.q.region + ' → ' + P.name + ' → 제주항';
     $('b-fare').textContent = won(b.fare);
-    $('b-ship').textContent = ov ? ov.ship : r.sch.s.ship;
-    $('b-dep').textContent = fmtDT(dep);
-    $('b-port').textContent = fmtDT(port);
-    $('b-dest').textContent = fmtDT(ov ? ov.dest : r.sch.dest);
-    if (ov) { $('b-change').hidden = false; $('b-change').textContent = `${fmtDT(ov.prevDep)} ${ov.prevShip} 배편이 결항 처리되어 ${fmtDT(ov.dep)} ${ov.ship}로 재배정했습니다. 목적지 도착 예정은 ${fmtDT(ov.dest)}입니다.`; return; }
+    $('b-portname').innerHTML = P.name + asmTag(P);
+    $('b-ship').textContent = sNow.ship;
+    $('b-dep').textContent = fmtDT(sNow.dep);
+    $('b-port').textContent = fmtDT(sNow.arr);
+    $('b-ready').textContent = fmtDT(sNow.arr + HANDOVER_H * 60);
+    if (ov) { $('b-change').hidden = false; $('b-change').textContent = `${fmtDT(ov.prevDep)} ${ov.prevShip} 배편이 결항 처리되어 ${fmtDT(ov.dep)} ${ov.ship}로 재배정했습니다. 제주항 인수 가능 예정은 ${fmtDT(ov.dep + (sNow.arr - sNow.dep) + HANDOVER_H * 60)}입니다.`; return; }
     const changed = r.sch.s.dep !== b.dep || lv.cls !== b.risk;
     $('b-change').hidden = !changed && lv.cls !== 'high';
-    if (r.sch.s.dep !== b.dep) $('b-change').textContent = `결항 위험이 바뀌어 배편이 ${fmtDT(b.dep)} ${b.ship}에서 ${fmtDT(r.sch.s.dep)} ${r.sch.s.ship}로 바뀌었습니다. 목적지 도착 예정은 ${fmtDT(r.sch.dest)}입니다.`;
-    else if (lv.cls === 'high') $('b-change').textContent = `결항 위험이 높습니다. 결항되면 다음 배편 ${r.sch.next.ship} ${fmtDT(r.sch.next.dep)} 출항, 목적지 도착 ${fmtDT(r.sch.nextDest)} 예정입니다.`;
-    else if (changed) $('b-change').textContent = `예약할 때와 결항 위험 단계가 달라졌습니다. 배편과 도착 예정은 그대로입니다.`;
+    if (r.sch.s.dep !== b.dep) $('b-change').textContent = `결항 위험이 바뀌어 배편이 ${fmtDT(b.dep)} ${b.ship}에서 ${fmtDT(r.sch.s.dep)} ${r.sch.s.ship}로 바뀌었습니다.`;
+    else if (lv.cls === 'high') $('b-change').textContent = `결항 위험이 높습니다. 결항되면 다음 배편 ${r.sch.next.ship} ${fmtDT(r.sch.next.dep)} 출항, 제주항 ${fmtDT(r.sch.nextReady)} 인수 가능 예정입니다.`;
+    else if (changed) $('b-change').textContent = '예약할 때와 결항 위험 단계가 달라졌습니다. 배편과 도착 예정은 그대로입니다.';
   };
   const renderList = () => {
     $('b-empty').hidden = memory.length > 0;
     $('b-list').replaceChildren(...memory.map((b) => {
       const btn = document.createElement('button'); btn.type = 'button';
       const a = document.createElement('span'); a.textContent = b.id; a.style.fontWeight = '700';
-      const c = document.createElement('span'); c.className = 'muted small'; c.textContent = fmtDT(b.dep) + ' · ' + b.ship + ' · ' + won(b.fare);
+      const c = document.createElement('span'); c.className = 'muted small'; c.textContent = fmtDT(b.dep) + ' · ' + P_BY[b.port].name + ' · ' + won(b.fare);
       btn.append(a, c);
       btn.addEventListener('click', () => { $('b-id').value = b.id; showBooking(b.id); });
       return btn;
@@ -1193,266 +1298,243 @@ button.ghost:hover { border-color: var(--orange); }
   };
   $('bform').addEventListener('submit', (e) => { e.preventDefault(); showBooking($('b-id').value); });
 
-  // ---- 요금 안내 예시 ----
+  // ---- 요금 안내 ----
   const renderPricing = () => {
-    $('ex-truck').innerHTML = truckSvg([{ n: 6, color: '#8D6E63' }, { n: 3, color: 'var(--others)' }, { n: 3, color: 'var(--orange)' }], { aria: '트럭 12칸 중 A 6칸, B 3칸, 나 3칸' });
-    $('ex-share').textContent = won(FARE.weekday * 3 / 12);
-    $('ex-total').textContent = won(share(3, 9, FARE.weekday).fare);
-    const t = share(3, 6, FARE.weekday);
+    const F = P_BY.mokpo.fare;
+    $('ex-strip').innerHTML = fareStrip([{ label: 'A', n: 6, color: '#8D6E63' }, { label: 'B', n: 3, color: 'var(--others)', ink: '#3E2723' }, { label: '나', n: 3, color: 'var(--orange)' }], SLOTS, F);
+    $('ex-share').textContent = won(F * 3 / 12);
+    $('ex-total').textContent = won(share(3, 9, F).fare);
+    const t = share(3, 6, F);
     $('ex-steps').innerHTML = [
-      ['트럭 1회 비용', won(FARE.weekday), '평일 도선료'],
+      ['트럭 1회 비용', won(F), '목포항 평일 도선료'],
       ['내 부피 비율', pct(3 / 9), '9칸 중 3칸'],
-      ['도선료 분담', won(FARE.weekday * 3 / 9), '364,380원 × 3/9'],
+      ['도선료 분담', won(F * 3 / 9), '364,380원 × 3/9'],
       ['하역비', won(9000), '3칸 × 3,000원'],
     ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('')
       + `<li class="total"><span>내 운임 (혼자 ${won(t.solo)}, ${pct(1 - t.fare / t.solo)} 절감)</span><span class="v">${won(t.fare)}</span></li>`;
+    $('port-table').innerHTML = PORTS.map((P) => `<tr><td><b>${P.name}</b></td><td>${P.sail.map((s) => `${s.ship} ${fmtTime(s.dep)} → ${fmtTime(s.dep + s.dur)}`).join('<br>')}</td><td>${won(P.fare)}</td><td>${won(P.holiday)}</td><td>${P.real ? '<span class="tag real">실제</span> 운임·출항 시각' : '<span class="tag asm">가정</span>'}</td></tr>`).join('');
   };
 
   // =====================================================================
-  // ---- 운영자 공통 ----
-  const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  // ---- 운영자 ----
   const PIN_HASH = 2263722387; // 'itsum:' + 비밀번호의 FNV-1a 값. 시연용 잠금이며 실제 보안 장치는 아님
   const ss = {
     get: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
-    set: (k, v) => { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { /* 저장 불가 시 이번 화면에서만 유지 */ } },
+    set: (k, v) => { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { /* 이번 화면에서만 유지 */ } },
   };
   let authed = ss.get('itsum-ops-auth') === '1';
-  const rng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
-  const pick = (r, items, w) => { let x = r() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < items.length; i++) { x -= w[i]; if (x < 0) return items[i]; } return items[items.length - 1]; };
-  const toMin = (ms) => Math.floor(ms / 60000) + 540; // 실제 시각(ms) → KST 분
-  const nowMin = () => toMin(Date.now());
-  const addDays = (key, n) => keyOf(parseDay(key) + n * DAY);
-  const mmdd = (key) => key.slice(5, 7) + key.slice(8, 10);
-  const fmtMD = (key) => { const d = new Date(parseDay(key) * 60000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + WD[d.getUTCDay()] + ')'; };
-  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const srcTag = (src) => `<span class="tag ${src === '실제' ? 'real' : 'syn'}">${src}</span>`;
-  const kpi = ([k, v, s]) => `<div class="card"><span class="k">${k}</span><span class="num">${v}</span><span class="s">${s}</span></div>`;
+  const kpi = ([k, v, s, cls]) => `<div class="card${cls ? ' ' + cls : ''}"><span class="k">${k}</span><span class="num">${v}</span><span class="s">${s}</span></div>`;
   const meter = (load) => `<span class="meter"><i><b style="width:${Math.min(100, load / SLOTS * 100).toFixed(1)}%"></b></i>${pct(load / SLOTS)}</span>`;
+  const stPill = (st) => `<span class="pill ${st === '매칭 완료' ? 'done' : 'need'}">${st}</span>`;
   const download = (name, rows) => {
     const csv = '﻿' + rows.map((r) => r.map((c) => { const s = String(c ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = name;
     document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   };
-
-  const COMPANIES = ['택배A', '택배B', '택배C', '화주D', '화주E'];
-  const HUBS = ['수도권', '대전', '광주'];
-  const HUB_W = [[0.6, 0.25, 0.15], [0.3, 0.5, 0.2], [0.2, 0.2, 0.6], [1, 0, 0], [0, 0.3, 0.7]];
-  const DESTS = ['제주시', '서귀포시', '제주 동부', '제주 서부'];
-  const DEST_W = [0.45, 0.25, 0.15, 0.15];
-  const LOAD_RANK = { '서귀포시': 0, '제주 동부': 1, '제주 서부': 1, '제주시': 2 }; // 먼저 싣는(안쪽) 순서. 제주시가 문 쪽
   const CAT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
   const custColor = (name) => { const i = COMPANIES.indexOf(name); return i >= 0 ? CAT[i] : CAT[6]; };
   const inkOn = (hex) => (hex === '#eda100' ? '#0b0b0b' : '#ffffff');
-  const FARE_EMPTY = 278220, FARE_LOADED = 364380;
-  const RET_TIMES = [{ label: '제주 01:00 귀로', dep: 60 }, { label: '제주 16:30 귀로', dep: 990 }]; // 가정: 선사 확인 필요
 
-  // ---- 주문 (가상 시연 주문 + 이 브라우저의 실제 예약) ----
-  const SYN_ORDERS = [];
-  Object.keys(SHIP).sort().forEach((key) => {
-    const d0 = parseDay(key);
-    SHIP[key].forEach((row, ci) => row.forEach((v, col) => {
-      if (!v) return;
-      const id = 'SY' + mmdd(key) + '-' + ci + col;
-      const r = rng(hashStr(id));
-      const after = col % 2 === 1, hub = pick(r, HUBS, HUB_W[ci]);
-      // 마감 후 도착분은 그날 13:00~22:00(그날 밤 01:00편), 마감 전 도착분은 전날 23:30~05:30(08:30편)
-      const mokpo = after ? d0 + 780 + Math.floor(r() * 19) * 30 : d0 - 30 + Math.floor(r() * 13) * 30;
-      const created = mokpo - Math.round((HUB_HOURS[hub] + MERGE_H) * 60) - (2 + Math.floor(r() * 20)) * 60;
-      SYN_ORDERS.push({ id, source: '가상', customer: COMPANIES[ci], hub, dest: pick(r, DESTS, DEST_W), slots: v, reefer: col < 2, mokpo, created });
-    }));
-  });
-  const userOrders = () => memory.map((b) => {
-    const r = quote(b.q);
-    if (r.error) return null;
-    return { id: b.id, source: '실제', customer: b.name || b.q.name || '고객', hub: b.q.hub, dest: b.q.dest, slots: b.mine, reefer: b.q.temp === 'cold', mokpo: r.sch.mokpo, created: toMin(b.created), booking: b };
-  }).filter(Boolean);
-
-  // ---- 귀로 요청 (가상 + 이 브라우저의 실제 요청) ----
-  const SEASON = { 1: 140, 2: 120, 3: 105, 4: 70, 5: 60, 6: 55, 7: 55, 8: 60, 9: 70, 10: 85, 11: 125, 12: 150 }; // 가정: 출항 감귤·월동채소 지수
-  const ALL_M = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  const ITEMS = [
-    { item: '감귤', reefer: false, who: ['감귤농가 가', '감귤농가 나', '감귤 선과장 다'], m: [10, 11, 12, 1, 2, 3], w: 3 },
-    { item: '월동무', reefer: false, who: ['월동채소 작목반 라'], m: [12, 1, 2, 3], w: 2 },
-    { item: '당근', reefer: false, who: ['당근 작목반 마'], m: [12, 1, 2, 3], w: 1.5 },
-    { item: '양배추', reefer: false, who: ['양배추 농가 바'], m: [11, 12, 1, 2, 3], w: 1.2 },
-    { item: '브로콜리', reefer: true, who: ['브로콜리 농가 사'], m: [12, 1, 2, 3], w: 1 },
-    { item: '수산물', reefer: true, who: ['수산 유통 아'], m: ALL_M, w: 1.2 },
-    { item: '생수·음료', reefer: false, who: ['음료 유통 자'], m: ALL_M, w: 1.2 },
-  ];
+  // ---- 육지행 요청 (가상 + 이 브라우저의 실제 요청) ----
+  const SEASON = { 1: 140, 2: 120, 3: 105, 4: 70, 5: 60, 6: 55, 7: 55, 8: 60, 9: 70, 10: 85, 11: 125, 12: 150 }; // 가정: 감귤·월동채소 출하 지수
+  const SHIPPERS = ['감귤농가 가', '감귤 선과장 나', '월동채소 작목반 다', '당근 작목반 라', '수산 유통 마', '음료 유통 바', '제주 공방 사'];
+  const retRec = (region, custom) => PORTS.map((P) => ({ P, h: P.retDur / 60 + hoursOf(region, P.id, custom) })).sort((a, b) => a.h - b.h)[0].P.id;
   const returnsForDay = (key) => {
-    // 이 날짜 귀로 매칭에 들어오는 가상 요청 (준비일은 전날~다음 날)
-    const r = rng(hashStr('RQ' + key)), d = new Date(parseDay(key) * 60000), mon = d.getUTCMonth() + 1;
-    const avail = ITEMS.filter((it) => it.m.includes(mon));
-    const n = Math.round(SEASON[mon] / 100 * 14 * (d.getUTCDay() === 0 ? 0.4 : 1) * (0.75 + 0.5 * r()));
+    const r = rng(hashStr('RQ' + key)), d = parseDay(key), dt = new Date(d * 60000), mon = dt.getUTCMonth() + 1;
+    const n = Math.round(SEASON[mon] / 100 * 28 * (dt.getUTCDay() === 0 ? 0.4 : 1) * (0.75 + 0.5 * r()));
     const out = [];
     for (let i = 0; i < n; i++) {
-      const it = pick(r, avail, avail.map((a) => a.w));
-      const u = r(), ready = addDays(key, u < 0.25 ? -1 : u < 0.75 ? 0 : 1);
-      out.push({ id: 'RS' + mmdd(key) + '-' + String(i + 1).padStart(2, '0'), source: '가상', shipper: pick(r, it.who, it.who.map(() => 1)), item: it.item, reefer: it.reefer, slots: (1 + Math.floor(r() * 8)) / 2, ready, to: pick(r, HUBS, [0.6, 0.2, 0.2]), created: parseDay(ready) - (1 + Math.floor(r() * 3)) * DAY + 540 + Math.floor(r() * 600) });
+      const region = pick(r, REGIONS, [0.45, 0.05, 0.12, 0.08, 0.15, 0.08, 0.07]);
+      const readyT = d + 360 + Math.floor(r() * 29) * 30;
+      out.push({ id: 'RS' + mmdd(key) + '-' + String(i + 1).padStart(2, '0'), source: '가상', shipper: pick(r, SHIPPERS, SHIPPERS.map(() => 1)), reefer: r() < 0.25, slots: (1 + Math.floor(r() * 8)) / 2, region, port: 'auto', rec: retRec(region, 0), readyT, created: readyT - (1 + Math.floor(r() * 3)) * DAY + Math.floor(r() * 300) });
     }
     return out;
   };
-  const RQ_KEY = 'itsum-returns';
+  const RQ_KEY = 'itsum-returns-v2';
   let myReturns = (() => { try { return JSON.parse(localStorage.getItem(RQ_KEY) || '[]'); } catch (e) { return []; } })();
-  const userReturns = () => myReturns.map((q) => ({ id: q.id, source: '실제', shipper: q.name || '귀로 고객', item: q.item, reefer: q.reefer, slots: q.slots, ready: q.ready, to: q.to, created: toMin(q.created) }));
-  const returnsPool = (key) => [...returnsForDay(key), ...userReturns().filter((q) => q.ready === key)];
+  const userReturns = () => myReturns.map((q) => ({ id: q.id, source: '실제', shipper: q.name || '육지행 고객', reefer: q.reefer, slots: q.slots, region: q.region, port: q.port, rec: q.port === 'auto' ? retRec(q.region, q.hours) : q.port, readyT: q.readyT, created: toMin(q.created) }));
+  const returnsPool = (key) => { const now = nowMin(); return [...returnsForDay(key).filter((q) => q.created <= now), ...userReturns().filter((q) => keyOf(q.readyT) === key)]; };
 
   // ---- 운영 설정 (결항 처리한 배편, 기준값) ----
-  const OPS_KEY = 'itsum-ops';
+  const OPS_KEY = 'itsum-ops-v2';
   const ops = (() => { try { const o = JSON.parse(localStorage.getItem(OPS_KEY) || '{}'); return { th: +o.th || 0.5, forced: Array.isArray(o.forced) ? o.forced : [] }; } catch (e) { return { th: 0.5, forced: [] }; } })();
   const saveOps = () => { try { localStorage.setItem(OPS_KEY, JSON.stringify(ops)); } catch (e) { /* 이번 화면에서만 유지 */ } };
   let cache = null;
-  const bumpOps = () => { cache = null; };
+  bumpOps = () => { cache = null; };
+  const userOrders = () => memory.map((b) => {
+    const r = quote({ ...b.q, port: b.port });
+    if (r.error) return null;
+    const P = P_BY[b.port];
+    return { id: b.id, source: '실제', customer: b.name || '고객', region: b.q.region, port: b.port, slots: b.mine, reefer: b.q.temp === 'cold', arrive: r.sch.arrive, created: toMin(b.created), booking: b, firstDep: sailingsAfter(P, r.sch.arrive)[0].dep };
+  }).filter(Boolean);
   const data = () => {
     if (cache) return cache;
-    const orders = [...SYN_ORDERS, ...userOrders()];
+    const now = nowMin();
+    const orders = [...SYN_ALL.filter((o) => o.created <= now), ...userOrders()];
     const byDay = new Map();
+    let minDay = Infinity;
     for (const o of orders) {
-      o.firstDep = sailingsAfter(o.mokpo)[0].dep;
-      const k = keyOf(o.firstDep);
+      const k = o.port + '|' + keyOf(o.firstDep);
       if (!byDay.has(k)) byDay.set(k, []);
       byDay.get(k).push(o);
+      minDay = Math.min(minDay, day0(o.firstDep));
     }
-    const keys = [...byDay.keys()].sort();
-    cache = { orders, byDay, minKey: keys[0], maxKey: keys[keys.length - 1], plans: { cur: new Map(), base: new Map() }, backs: new Map() };
+    const userDays = [...new Set(orders.filter((o) => o.source === '실제').map((o) => keyOf(o.firstDep)))];
+    const keys = [...new Set([...WIN_KEYS, ...userDays])].sort();
+    cache = { orders, byDay, minDay, keys, plans: { cur: new Map(), base: new Map() }, backs: new Map() };
     return cache;
   };
 
   // ---- 배송 계획: 주문 → 트럭 → 배편 ----
-  const sailingsOn = (key) => { const d0 = parseDay(key); return SAILINGS.map((s) => ({ ...s, dep: d0 + s.dep, arr: d0 + s.arr, cutoff: d0 + s.dep - CUTOFF_BEFORE })); };
   const packTrucks = (key, sail, reefer, list, placed) => {
-    // 같은 배편 안에서 안쪽(서귀포)부터 문 쪽(제주시) 순서로 채움. 주문은 칸 단위로 다음 트럭에 이어 실을 수 있음
-    const sorted = [...list].sort((a, b) => LOAD_RANK[a.o.dest] - LOAD_RANK[b.o.dest] || b.o.slots - a.o.slots);
-    const tag = sail.s.id === 'night' ? '01' : '08';
+    // 목포 도착이 이른 화물부터 운전석 쪽에 싣고, 주문은 칸 단위로 다음 트럭에 이어 실을 수 있음
+    const sorted = [...list].sort((a, b) => a.o.arrive - b.o.arrive || b.o.slots - a.o.slots);
     let truck = null;
     for (const x of sorted) {
       let left = x.o.slots;
       while (left > 1e-9) {
         if (!truck || truck.load >= SLOTS - 1e-9) {
-          truck = { id: mmdd(key) + '-' + tag + (reefer ? 'R' : 'A') + (sail.trucks.filter((t) => t.reefer === reefer).length + 1), reefer, pieces: [], load: 0, sail };
+          truck = { id: mmdd(key) + '-' + sail.s.P.code + (sail.s.idx + 1) + (reefer ? 'R' : 'A') + (sail.trucks.filter((t) => t.reefer === reefer).length + 1), reefer, pieces: [], load: 0, sail };
           sail.trucks.push(truck);
         }
         const put = Math.min(left, SLOTS - truck.load);
         truck.pieces.push({ o: x.o, slots: put }); truck.load += put; left -= put;
         const pl = placed.get(x.o.id) || { sail, trucks: [], carried: x.carried };
-        pl.trucks.push(truck.id); placed.set(x.o.id, pl);
+        if (!pl.trucks.includes(truck)) pl.trucks.push(truck);
+        placed.set(x.o.id, pl);
       }
     }
   };
-  const planDay = (key, mode) => {
-    const D = data(), memo = D.plans[mode];
-    if (memo.has(key)) return memo.get(key);
-    if (!D.minKey || key < D.minKey) { const empty = { key, sailings: [], placed: new Map(), carryOut: [], orders: [] }; memo.set(key, empty); return empty; }
-    const prev = planDay(addDays(key, -1), mode);
-    const sails = sailingsOn(key).map((s) => {
-      const wx = wxFor(s), forced = mode === 'cur' && ops.forced.includes(s.dep);
+  const planDay = (port, key, mode) => {
+    const D = data(), memo = D.plans[mode], mk = port + '|' + key;
+    if (memo.has(mk)) return memo.get(mk);
+    const P = P_BY[port], d = parseDay(key);
+    if (d < D.minDay) { const empty = { port, key, sailings: [], placed: new Map(), carryOut: [], orders: [], searched: 0 }; memo.set(mk, empty); return empty; }
+    const prev = planDay(port, addDays(key, -1), mode);
+    const sails = sailingsOn(P, d).map((s) => {
+      const wx = wxFor(s), forced = mode === 'cur' && ops.forced.includes(port + '@' + s.dep);
       return { s, wx, p: wx.p, forced, ok: !forced && wx.p <= ops.th, trucks: [] };
     });
-    const [sN, sM] = sails;
     const all = [
-      ...prev.carryOut.map((x) => ({ o: x.o, nightOk: true, carried: true })),
-      ...(D.byDay.get(key) || []).map((o) => ({ o, nightOk: o.firstDep === sN.s.dep, carried: false })),
+      ...prev.carryOut.map((x) => ({ o: x.o, firstOk: true, carried: true })),
+      ...(D.byDay.get(mk) || []).map((o) => ({ o, firstOk: o.firstDep === sails[0].s.dep, carried: false })),
     ];
     const placed = new Map(), carryOut = [];
+    let searched = 0;
     for (const reefer of [true, false]) {
       const items = all.filter((x) => x.o.reefer === reefer);
       if (!items.length) continue;
-      const N = items.filter((x) => x.nightOk), M = items.filter((x) => !x.nightOk);
-      let night = [], morning = [], carry = [];
-      if (sN.ok && sM.ok) {
-        // 01:00편에 태울 주문 조합을 전부 따져 트럭 수 최소 → 01:00편 칸 수 최대
-        const w = N.map((x) => Math.round(x.o.slots * 4)), nU = w.reduce((a, b) => a + b, 0);
-        const mU = M.reduce((a, x) => a + Math.round(x.o.slots * 4), 0), cap = SLOTS * 4;
-        const reach = new Int32Array(nU + 1).fill(-1); reach[0] = -2;
-        w.forEach((wi, i) => { for (let s = nU - wi; s >= 0; s--) if (reach[s] !== -1 && reach[s + wi] === -1) reach[s + wi] = i; });
-        let best = 0, bestT = Infinity;
-        for (let x = 0; x <= nU; x++) {
-          if (reach[x] === -1) continue;
-          const t = Math.ceil(x / cap) + Math.ceil((nU - x + mU) / cap);
-          if (t < bestT || (t === bestT && x > best)) { bestT = t; best = x; }
-        }
-        const take = new Set();
-        for (let s = best; s > 0;) { const i = reach[s]; take.add(i); s -= w[i]; }
-        N.forEach((x, i) => (take.has(i) ? night : morning).push(x));
-        morning.push(...M);
-      } else if (sM.ok) morning = items;
-      else if (sN.ok) { night = N; carry = M; }
-      else carry = items;
-      packTrucks(key, sN, reefer, night, placed);
-      packTrucks(key, sM, reefer, morning, placed);
+      const assign = sails.map(() => []), carry = [];
+      if (sails.length === 1) { if (sails[0].ok) assign[0].push(...items); else carry.push(...items); }
+      else {
+        const [sA, sB] = sails, A = items.filter((x) => x.firstOk), B = items.filter((x) => !x.firstOk);
+        if (sA.ok && sB.ok) {
+          // 첫 배편에 태울 주문 조합을 전부 따져 트럭 수 최소 → 첫 배 칸 수 최대
+          const w = A.map((x) => Math.round(x.o.slots * 4)), nU = w.reduce((a, b) => a + b, 0);
+          const mU = B.reduce((a, x) => a + Math.round(x.o.slots * 4), 0), cap = SLOTS * 4;
+          const reach = new Int32Array(nU + 1).fill(-1); reach[0] = -2;
+          w.forEach((wi, i) => { for (let s = nU - wi; s >= 0; s--) if (reach[s] !== -1 && reach[s + wi] === -1) reach[s + wi] = i; });
+          let best = 0, bestT = Infinity;
+          for (let x = 0; x <= nU; x++) {
+            if (reach[x] === -1) continue;
+            searched++;
+            const t = Math.ceil(x / cap) + Math.ceil((nU - x + mU) / cap);
+            if (t < bestT || (t === bestT && x > best)) { bestT = t; best = x; }
+          }
+          const take = new Set();
+          for (let s = best; s > 0;) { const i = reach[s]; take.add(i); s -= w[i]; }
+          A.forEach((x, i) => assign[take.has(i) ? 0 : 1].push(x));
+          assign[1].push(...B);
+        } else if (sB.ok) assign[1].push(...items);
+        else if (sA.ok) { assign[0].push(...A); carry.push(...B); }
+        else carry.push(...items);
+      }
+      sails.forEach((sl, i) => packTrucks(key, sl, reefer, assign[i], placed));
       carry.forEach((x) => carryOut.push({ o: x.o }));
     }
-    const plan = { key, sailings: sails, placed, carryOut, orders: all };
-    memo.set(key, plan);
+    const plan = { port, key, sailings: sails, placed, carryOut, orders: all, searched };
+    memo.set(mk, plan);
     return plan;
   };
   const finalPlace = (o, mode) => {
     let key = keyOf(o.firstDep);
-    for (let i = 0; i < 5; i++) { const pl = planDay(key, mode).placed.get(o.id); if (pl) return pl; key = addDays(key, 1); }
+    for (let i = 0; i < 5; i++) { const pl = planDay(o.port, key, mode).placed.get(o.id); if (pl) return pl; key = addDays(key, 1); }
     return null;
   };
-  const etaDest = (o, sail) => sail.s.arr + Math.round((HANDOVER_H + DEST_HOURS[o.dest]) * 60);
-  const statusOf = (o) => {
-    const cur = finalPlace(o, 'cur'), base = finalPlace(o, 'base');
-    if (!cur || (base && cur.sail.s.dep !== base.sail.s.dep)) return '결항재배정';
-    const now = nowMin(), dep = cur.sail.s.dep;
-    return now < dep - DAY ? '접수' : now < dep ? '배정' : now < cur.sail.s.arr ? '출항' : '도착';
-  };
-  const syncOverrides = () => {
+  const readyOf = (sail) => sail.s.arr + HANDOVER_H * 60;
+  syncOverrides = () => {
     // 운영자가 결항 처리해 배편이 바뀐 실제 예약은 예약 기록에 저장 → 고객 '내 예약 조회'에 반영
     let changed = false;
     for (const o of data().orders) {
       if (!o.booking) continue;
       const b = o.booking, cur = finalPlace(o, 'cur'), base = finalPlace(o, 'base');
       if (cur && base && cur.sail.s.dep !== base.sail.s.dep) {
-        const ov = { dep: cur.sail.s.dep, ship: cur.sail.s.ship, arr: cur.sail.s.arr, dest: etaDest(o, cur.sail), prevDep: base.sail.s.dep, prevShip: base.sail.s.ship };
+        const ov = { dep: cur.sail.s.dep, ship: cur.sail.s.ship, prevDep: base.sail.s.dep, prevShip: base.sail.s.ship };
         if (JSON.stringify(b.override) !== JSON.stringify(ov)) { b.override = ov; changed = true; }
       } else if (b.override) { delete b.override; changed = true; }
     }
     if (changed) saveBookings(memory);
   };
+  const outStatus = (o) => {
+    const cur = finalPlace(o, 'cur'), base = finalPlace(o, 'base'), now = nowMin();
+    const re = base && (!cur || cur.sail.s.dep !== base.sail.s.dep) ? '결항 재배정 · ' : '';
+    if (!cur) return { st: '매칭 필요', why: re + '탈 배 없음 · 다음 날로 이월', pl: null };
+    const ids = cur.trucks.map((t) => t.id).join(', '), minLoad = Math.min(...cur.trucks.map((t) => t.load));
+    if (now >= cur.sail.s.cutoff) return { st: '매칭 완료', why: re + `${ids} 확정 (마감 지남)`, pl: cur };
+    if (minLoad >= SLOTS - 1e-9) return { st: '매칭 완료', why: re + `${ids} 12칸 가득 · 확정`, pl: cur };
+    return { st: '매칭 필요', why: re + `합적 중 · ${ids} ${slotsTxt(minLoad)}/12칸 · 마감 ${fmtDT(cur.sail.s.cutoff)}`, pl: cur };
+  };
 
-  // ---- 복화 매칭 ----
+  // ---- 복화 매칭 (제주 도착일 기준) ----
   const backhaul = (key) => {
     const D = data();
     if (D.backs.has(key)) return D.backs.get(key);
-    const plan = planDay(key, 'cur'), d0 = parseDay(key);
-    const cands = [];
-    for (let k = 0; k < 3; k++) for (const rt of RET_TIMES) cands.push({ ...rt, dep: d0 + k * DAY + rt.dep });
-    cands.sort((a, b) => a.dep - b.dep);
-    const trucks = [];
-    for (const sl of plan.sailings) {
-      if (!sl.ok) continue;
-      for (const t of sl.trucks) {
-        const ready = sl.s.arr + 120; // 제주 도착 + 하역 2시간
-        trucks.push({ id: t.id, reefer: t.reefer, jeju: sl.s.arr, ret: cands.find((c) => c.dep - CUTOFF_BEFORE >= ready), load: 0, pieces: [] });
+    const d = parseDay(key), trucks = [];
+    for (const P of PORTS) for (const k of [addDays(key, -1), key]) {
+      for (const sl of planDay(P.id, k, 'cur').sailings) {
+        if (!sl.ok) continue;
+        for (const t of sl.trucks) {
+          if (keyOf(sl.s.arr) !== key) continue;
+          const ready = sl.s.arr + 120, cands = [];
+          for (let i = 0; i < 3; i++) for (const rd of P.ret) cands.push(d + i * DAY + rd);
+          const dep = cands.sort((a, b) => a - b).find((c) => c - CUTOFF_BEFORE >= ready);
+          trucks.push({ id: t.id, P, reefer: t.reefer, jeju: sl.s.arr, ret: { dep, arr: dep + P.retDur }, load: 0, pieces: [] });
+        }
       }
     }
     trucks.sort((a, b) => a.ret.dep - b.ret.dep);
-    const reqs = returnsPool(key).sort((a, b) => a.ready.localeCompare(b.ready) || b.slots - a.slots);
-    const waiting = [];
+    const reqs = returnsPool(key).sort((a, b) => a.readyT - b.readyT || b.slots - a.slots);
+    const waiting = [], got = new Map();
     for (const q of reqs) {
       const same = trucks.filter((t) => t.reefer === q.reefer);
-      const elig = same.filter((t) => q.ready <= keyOf(t.ret.dep));
+      const portOk = same.filter((t) => q.port === 'auto' || t.P.id === q.port);
+      const elig = portOk.filter((t) => q.readyT <= t.ret.dep - CUTOFF_BEFORE).sort((a, b) => (a.P.id === q.rec ? 0 : 1) - (b.P.id === q.rec ? 0 : 1) || a.ret.dep - b.ret.dep);
       let left = q.slots;
       for (const t of elig) {
         if (left <= 1e-9) break;
         const put = Math.min(left, SLOTS - t.load);
         if (put <= 1e-9) continue;
         t.pieces.push({ q, slots: put }); t.load += put; left -= put;
+        got.set(q.id, (got.get(q.id) || []).concat([{ t, slots: put }]));
       }
       if (left > 1e-9) {
-        const reason = !same.length ? (q.reefer ? '냉장 트럭 없음' : '상온 트럭 없음') : !elig.length ? '준비일 미도래' : '귀로 공간 부족';
-        waiting.push({ q, left, reason, action: !same.length && q.reefer ? '일반화물(선내 하차) 전환 검토' : '다음 날로 이월' });
+        const reason = !same.length ? `${q.reefer ? '냉장' : '상온'} 귀로 트럭 없음` : !portOk.length ? `${P_BY[q.port].name}행 트럭 없음` : !elig.length ? '준비 시각이 귀로 마감 이후' : '귀로 공간 부족';
+        waiting.push({ q, left, reason, action: !same.length && q.reefer ? '일반화물(선내 하차) 전환 검토' : '다음 날 매칭' });
       }
     }
-    const res = { key, trucks, waiting, reqs };
+    const res = { key, trucks, waiting, reqs, got };
     D.backs.set(key, res);
     return res;
   };
+  const retStatus = (bh, q) => {
+    const g = bh.got.get(q.id) || [], m = g.reduce((a, x) => a + x.slots, 0), w = bh.waiting.find((x) => x.q.id === q.id);
+    if (!w) return { st: '매칭 완료', why: g.map((x) => `${x.t.id} → ${x.t.P.name} ${fmtDT(x.t.ret.dep)} 제주 출항`).join(', '), matched: m };
+    return { st: '매칭 필요', why: `${w.reason}${m ? ` · ${slotsTxt(m)}만 매칭` : ''} · ${w.action}`, matched: m };
+  };
 
-  // ---- 차트 (단일 축, 호버 툴팁) ----
+  // ---- 차트 도구 ----
   const niceCeil = (v) => { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; };
   const roundTop = (x, y, w, h, r) => { r = Math.min(r, h, w / 2); return `M${x} ${y + h}V${y + r}Q${x} ${y} ${x + r} ${y}H${x + w - r}Q${x + w} ${y} ${x + w} ${y + r}V${y + h}Z`; };
   const bindTips = (el) => {
@@ -1468,101 +1550,105 @@ button.ghost:hover { border-color: var(--orange); }
     el.onmouseleave = () => { tip.hidden = true; };
   };
   const colChart = (el, rows, o) => {
-    const W = Math.max(300, el.clientWidth || 800), H = o.h || 170, m = { t: 10, r: 8, b: 24, l: 40 };
+    const W = Math.max(300, el.clientWidth || 800), H = o.h || 170, m = { t: 10, r: 8, b: 24, l: 44 };
     const yMax = niceCeil(Math.max(1, ...rows.map((d) => Math.max(d.v, d.ref || 0))));
     const y = (v) => H - m.b - v / yMax * (H - m.t - m.b);
     const n = rows.length, bw = (W - m.l - m.r) / n, cx = (i) => m.l + bw * (i + 0.5);
     let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="display:block;font-family:inherit;font-size:11.5px">`;
-    for (const f of [0, 0.25, 0.5, 0.75, 1]) { const v = yMax * f; s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${f ? 'var(--line)' : 'var(--line-strong)'}"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end" fill="var(--ink-muted)">${num(v, v % 1 ? 1 : 0)}</text>`; }
-    const every = Math.max(1, Math.ceil(n / Math.max(1, Math.floor((W - m.l) / 46))));
-    rows.forEach((d, i) => { if (i % every === 0) s += `<text x="${cx(i)}" y="${H - 7}" text-anchor="middle" fill="var(--ink-muted)">${d.label}</text>`; });
-    if (o.type === 'line') {
-      s += `<path d="M${rows.map((d, i) => cx(i).toFixed(1) + ' ' + y(d.v).toFixed(1)).join(' L')}" fill="none" stroke="${o.color}" stroke-width="2" stroke-linejoin="round"/>`;
-      rows.forEach((d, i) => { s += `<circle cx="${cx(i)}" cy="${y(d.v)}" r="4" fill="${o.color}" stroke="var(--paper)" stroke-width="2"/>`; });
-    } else {
-      const w = Math.max(2, Math.min(30, bw - 3));
-      rows.forEach((d, i) => { const top = y(d.v), h = H - m.b - top; if (h > 0.5) s += `<path d="${roundTop(cx(i) - w / 2, top, w, h, 4)}" fill="${o.color}"/>`; });
-    }
+    for (const f of [0, 0.25, 0.5, 0.75, 1]) { const v = yMax * f; s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${f ? 'var(--line)' : 'var(--line-strong)'}"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end" fill="var(--ink-muted)">${num(v)}</text>`; }
+    rows.forEach((d, i) => { s += `<text x="${cx(i)}" y="${H - 7}" text-anchor="middle" fill="var(--ink-muted)">${d.label}</text>`; });
+    const w = Math.max(2, Math.min(30, bw - 3));
+    rows.forEach((d, i) => { const top = y(d.v), h = H - m.b - top; if (h > 0.5) s += `<path d="${roundTop(cx(i) - w / 2, top, w, h, 4)}" fill="${o.color}"/>`; });
     if (rows.some((d) => d.ref != null)) s += `<path d="M${rows.map((d, i) => cx(i).toFixed(1) + ' ' + y(d.ref).toFixed(1)).join(' L')}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 4"/>`;
     rows.forEach((d, i) => { s += `<rect x="${m.l + bw * i}" y="${m.t}" width="${bw}" height="${H - m.t - m.b}" fill="transparent" data-tip="${esc(d.tip)}"/>`; });
     el.innerHTML = s + '</svg><div class="tip" hidden></div>';
     bindTips(el);
   };
-  const hbars = (el, rows, fmt) => {
-    const max = Math.max(1e-9, ...rows.map((r) => r.v));
-    el.innerHTML = rows.length ? rows.map((r) => `<div class="hbar"><span class="lab" title="${esc(r.label)}">${esc(r.label)}</span><span class="track"><span class="fill" style="display:block;width:${(r.v / max * 100).toFixed(1)}%"></span></span><span class="val">${fmt(r.v)}</span></div>`).join('') : '<p class="empty-note">기간 안 주문이 없습니다.</p>';
-  };
-  const groupSum = (list, keyFn, valFn) => { const m = new Map(); for (const x of list) m.set(keyFn(x), (m.get(keyFn(x)) || 0) + valFn(x)); return [...m].map(([label, v]) => ({ label, v })); };
 
-  // ---- 화면 A: 주문 현황 ----
-  const periodStart = (p) => { const t0 = Math.floor(nowMin() / DAY) * DAY; return p === 'today' ? t0 : p === '7' ? t0 - 6 * DAY : p === '28' ? t0 - 27 * DAY : -Infinity; };
-  const PERIOD_TXT = { today: '오늘', 7: '최근 7일', 28: '최근 4주', all: '전체' };
-  const ordersInPeriod = () => { const now = nowMin(), start = periodStart(val('operiod')); return data().orders.filter((o) => o.created >= start && o.created <= now); };
-  const orderRows = () => {
-    const st = $('o-status').value;
-    return ordersInPeriod().map((o) => ({ o, st: statusOf(o), pl: finalPlace(o, 'cur') })).filter((x) => !st || x.st === st).sort((a, b) => b.o.created - a.o.created);
+  // ---- 날짜·항구 선택 공유 ----
+  let opsDate = null, opsPort = 'all';
+  const fillDate = (sel) => {
+    const keys = data().keys;
+    if (!opsDate || !keys.includes(opsDate)) opsDate = keys.includes(todayKey) ? todayKey : keys[keys.length - 1];
+    sel.innerHTML = keys.map((k) => `<option value="${k}"${k === opsDate ? ' selected' : ''}>${fmtMD(k)}${k === todayKey ? ' · 오늘' : ''}</option>`).join('');
   };
-  const renderOrders = () => {
-    const D = data(), p = val('operiod'), now = nowMin(), today = keyOf(now), list = ordersInPeriod();
-    const slots = list.reduce((a, o) => a + o.slots, 0);
-    const todayN = D.orders.filter((o) => keyOf(o.created) === today && o.created <= now).length;
-    const depToday = D.orders.reduce((a, o) => { const pl = finalPlace(o, 'cur'); return a + (pl && keyOf(pl.sail.s.dep) === today ? o.slots : 0); }, 0);
-    const start = periodStart(p), retStart = start === -Infinity ? parseDay(SAMPLE_START) : start;
-    let rets = 0;
-    for (let k = keyOf(retStart); k <= addDays(today, 3); k = addDays(k, 1)) rets += returnsForDay(k).filter((q) => q.created >= start && q.created <= now).length;
-    rets += userReturns().filter((q) => q.created >= start && q.created <= now).length;
-    $('o-kpis').innerHTML = [
-      ['누적 주문', num(list.length) + '건', PERIOD_TXT[p] + ' 접수 기준'],
-      ['누적 화물량', slotsTxt(slots), '약 ' + num(slots * 1.2, 1) + '㎥'],
-      ['오늘 접수', num(todayN) + '건', fmtMD(today)],
-      ['오늘 출항 예정', slotsTxt(depToday), '배송 계획 기준'],
-      ['귀로 화물 요청', num(rets) + '건', PERIOD_TXT[p] + ' 접수 기준'],
+  const fillPort = (sel, withAll) => {
+    if (!withAll && opsPort === 'all') opsPort = 'mokpo';
+    sel.innerHTML = (withAll ? '<option value="all">전체 출발항</option>' : '') + PORTS.map((P) => `<option value="${P.id}"${P.id === opsPort ? ' selected' : ''}>${P.name}${P.real ? '' : ' (가정)'}</option>`).join('');
+    sel.value = opsPort;
+  };
+  const portsOf = (port) => (port === 'all' ? PORTS : [P_BY[port]]);
+
+  // ---- 화면 A: 일일 현황 ----
+  const outRows = () => data().orders.filter((o) => keyOf(o.firstDep) === opsDate && (opsPort === 'all' || o.port === opsPort)).map((o) => ({ o, ...outStatus(o) })).sort((a, b) => (a.st === b.st ? a.o.arrive - b.o.arrive : a.st === '매칭 필요' ? -1 : 1));
+  const retRows = () => { const bh = backhaul(opsDate); return bh.reqs.map((q) => ({ q, ...retStatus(bh, q) })).sort((a, b) => (a.st === b.st ? a.q.readyT - b.q.readyT : a.st === '매칭 필요' ? -1 : 1)); };
+  const renderDaily = () => {
+    fillDate($('a-date')); fillPort($('a-port'), true);
+    const outs = outRows(), rets = retRows(), now = nowMin();
+    const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
+    const oDone = outs.filter((x) => x.st === '매칭 완료'), oNeed = outs.filter((x) => x.st === '매칭 필요');
+    const rDone = rets.filter((x) => x.st === '매칭 완료'), rNeed = rets.filter((x) => x.st === '매칭 필요');
+    const oS = (l) => sum(l, (x) => x.o.slots), rS = (l) => sum(l, (x) => x.q.slots);
+    $('a-kpi-out').innerHTML = [
+      ['일일 요청', num(outs.length) + '건', slotsTxt(oS(outs))],
+      ['매칭 완료', num(oDone.length) + '건', slotsTxt(oS(oDone)) + ' · 트럭·배편 확정', 'done-k'],
+      ['매칭 필요', num(oNeed.length) + '건', slotsTxt(oS(oNeed)) + ' · 합적 중·이월', 'need-k'],
+    ].map(kpi).join('');
+    $('a-kpi-ret').innerHTML = [
+      ['일일 요청', num(rets.length) + '건', slotsTxt(rS(rets))],
+      ['매칭 완료', num(rDone.length) + '건', slotsTxt(sum(rets, (x) => x.matched)) + ' · 귀로 트럭 배정', 'done-k'],
+      ['매칭 필요', num(rNeed.length) + '건', slotsTxt(rS(rets) - sum(rets, (x) => x.matched)) + ' · 대기', 'need-k'],
     ].map(kpi).join('');
 
-    // 일별 (기간이 짧으면 최근 7일)
-    const firstDay = list.length ? keyOf(Math.min(...list.map((o) => o.created))) : today;
-    let from = p === 'all' ? firstDay : keyOf(Math.min(periodStart(p), Math.floor(now / DAY) * DAY - 6 * DAY));
-    const days = [];
-    for (let k = from; k <= today; k = addDays(k, 1)) days.push(k);
-    const shown = D.orders.filter((o) => o.created >= parseDay(from) && o.created <= now);
-    const byDay = new Map(days.map((k) => [k, { n: 0, s: 0 }]));
-    for (const o of shown) { const e = byDay.get(keyOf(o.created)); if (e) { e.n++; e.s += o.slots; } }
-    $('o-range').textContent = fmtMD(from) + ' ~ ' + fmtMD(today) + (p === 'today' ? ' (오늘 기간은 최근 7일로 표시)' : '');
-    const lab = (k) => (+k.slice(5, 7)) + '/' + (+k.slice(8, 10));
-    colChart($('o-daily-slots'), days.map((k) => ({ label: lab(k), v: byDay.get(k).s, tip: `<b>${fmtMD(k)}</b><br>${slotsTxt(byDay.get(k).s)} · ${byDay.get(k).n}건` })), { color: 'var(--orange)', h: 170 });
-    colChart($('o-daily-count'), days.map((k) => ({ label: lab(k), v: byDay.get(k).n, tip: `<b>${fmtMD(k)}</b><br>${byDay.get(k).n}건 · ${slotsTxt(byDay.get(k).s)}` })), { color: 'var(--ink)', type: 'line', h: 130 });
+    // 비교 막대: 전체 + 배편별
+    const rows = [{ label: '육지 → 제주 전체', a: oS(oDone), b: oS(oNeed), total: true }];
+    for (const P of portsOf(opsPort)) for (const s of sailingsOn(P, parseDay(opsDate))) {
+      const l = outs.filter((x) => x.o.firstDep === s.dep);
+      if (l.length) rows.push({ label: sailName(s), a: oS(l.filter((x) => x.st === '매칭 완료')), b: oS(l.filter((x) => x.st === '매칭 필요')) });
+    }
+    rows.push({ label: '제주 → 육지 전체', a: sum(rets, (x) => x.matched), b: rS(rets) - sum(rets, (x) => x.matched), total: true });
+    const max = Math.max(1e-9, ...rows.map((r) => r.a + r.b));
+    $('a-compare').innerHTML = rows.map((r) => `<div class="srow${r.total ? ' total' : ''}"><span class="lab">${r.label}</span><span class="strack">${r.a > 0 ? `<span style="width:${(r.a / max * 100).toFixed(1)}%;background:var(--orange)" title="매칭 완료 ${slotsTxt(r.a)}"></span>` : ''}${r.b > 0 ? `<span style="width:${(r.b / max * 100).toFixed(1)}%;background:var(--need)" title="매칭 필요 ${slotsTxt(r.b)}"></span>` : ''}</span><span class="val">완료 ${slotsTxt(r.a)} · 필요 ${slotsTxt(r.b)}</span></div>`).join('');
 
-    const fmtS = (v) => slotsTxt(v) + (slots ? ` <small>${pct(v / slots)}</small>` : '');
-    hbars($('o-hub'), groupSum(list, (o) => o.hub, (o) => o.slots).sort((a, b) => b.v - a.v), fmtS);
-    hbars($('o-dest'), groupSum(list, (o) => o.dest, (o) => o.slots).sort((a, b) => b.v - a.v), fmtS);
-    hbars($('o-top'), groupSum(list, (o) => o.customer, (o) => o.slots).sort((a, b) => b.v - a.v).slice(0, 10), (v) => slotsTxt(v));
-    const cold = list.filter((o) => o.reefer).reduce((a, o) => a + o.slots, 0), amb = slots - cold;
-    $('o-temp').innerHTML = slots ? `<div class="stackbar" role="img" aria-label="냉장 ${pct(cold / slots)}, 상온 ${pct(amb / slots)}"><span style="flex:${cold};background:#2a78d6" title="냉장 ${slotsTxt(cold)}"></span><span style="flex:${amb};background:var(--orange)" title="상온 ${slotsTxt(amb)}"></span></div>
-      <div class="legend" style="margin-top:10px"><span><i style="background:#2a78d6"></i>냉장 ${slotsTxt(cold)} (${pct(cold / slots)})</span><span><i style="background:var(--orange)"></i>상온 ${slotsTxt(amb)} (${pct(amb / slots)})</span></div>` : '<p class="empty-note">기간 안 주문이 없습니다.</p>';
+    // AI 배분 엔진
+    const plans = portsOf(opsPort).map((P) => planDay(P.id, opsDate, 'cur'));
+    const sails = plans.flatMap((p) => p.sailings);
+    const off = sails.filter((sl) => !sl.ok), open = sails.filter((sl) => sl.ok && now < sl.s.cutoff);
+    const trucks = sails.filter((sl) => sl.ok).flatMap((sl) => sl.trucks);
+    const loadSum = sum(trucks, (t) => t.load), searched = sum(plans, (p) => p.searched);
+    const fc = open.map((sl) => { const got = sum(outs.filter((x) => x.o.firstDep === sl.s.dep), (x) => x.o.slots), exp = forecastTotal(sl.s); return { sl, got, add: Math.max(0, exp - got) }; });
+    const addSum = sum(fc, (x) => x.add);
+    const soloTrucks = sum(outs, (x) => Math.ceil(x.o.slots / SLOTS - 1e-9));
+    const soloFare = sum(outs, (x) => Math.ceil(x.o.slots / SLOTS - 1e-9) * truckCost(P_BY[x.o.port], x.o.firstDep));
+    const ourFare = sum(trucks, (t) => truckCost(t.sail.s.P, t.sail.s.dep));
+    const maxP = sails.reduce((a, sl) => (sl.p > a.p ? sl : a), { p: -1 });
+    $('a-pipe').innerHTML = [
+      ['결항 위험 예측', '머신러닝 분류: 파고·풍속 → 배편별 결항 확률', sails.length ? `배편 ${sails.length}편 중 사용 중지 ${off.length}편${maxP.s ? ` · 최고 ${pct(maxP.p)} (${sailName(maxP.s)})` : ''}` : '이날 배편 없음', '시연: 예시식 · 실서비스: LightGBM'],
+      ['물량 예측', '마감 전 추가 도착량 예측: 출발항·배편·요일별 과거 평균', open.length ? `마감 전 배편 ${open.length}편 · 추가 예상 +${slotsTxt(addSum)}` : '마감 전 배편 없음 (모두 확정)', '시연: 요일 평균 · 실서비스: 시계열 모델'],
+      ['배분 최적화', '정수 최적화: 냉장/상온 분리 · 트럭당 12칸 · 마감 시각 제약 → 트럭 수 최소, 첫 배 칸 수 최대', `후보 조합 ${num(searched)}개 탐색 → 트럭 ${trucks.length}대`, '시연: 브라우저 전수 탐색 · 실서비스: OR-Tools'],
+      ['상차·정산', '도착 순서대로 상차 · 부피 비율 분담 · 혼자 비용 상한', trucks.length ? `평균 적재율 ${pct(loadSum / (trucks.length * SLOTS))}` : '—', '적용 중'],
+    ].map(([t, m, v, tag], i) => `<div class="pstep"><span class="pno">${i + 1}</span><b>${t}</b><span class="pm">${m}</span><span class="pv">${v}</span><span><span class="tag ${tag === '적용 중' ? 'real' : 'asm'}">${tag}</span></span></div>`).join('');
+    const cmax = Math.max(1, soloTrucks, trucks.length);
+    $('a-cmp').innerHTML = [
+      ['각자 트럭을 띄우면', soloTrucks, soloFare, 'var(--ink-muted)'],
+      ['AI 배분 (잇섬)', trucks.length, ourFare, 'var(--orange)'],
+    ].map(([l, t, f, c]) => `<div class="cmpbar"><span>${l}</span><span class="track"><span style="width:${(t / cmax * 100).toFixed(1)}%;background:${c}"></span></span><span class="val"><b>트럭 ${t}대</b> · 도선료 ${won(f)}</span></div>`).join('');
+    $('a-ai-note').textContent = outs.length
+      ? `이날 육지→제주 요청 ${outs.length}건(${slotsTxt(oS(outs))})을 트럭 ${soloTrucks}대 대신 ${trucks.length}대로 나눠 실어 도선료 ${won(Math.max(0, soloFare - ourFare))}(${soloFare ? pct((soloFare - ourFare) / soloFare) : '—'})를 줄입니다. 결항 예측과 물량 예측은 시연용 단순 모델이며, 실서비스에서는 기상·운항 이력으로 학습한 모델로 바꿉니다.`
+      : '이날 접수된 육지→제주 요청이 없습니다.';
 
-    const rows = orderRows();
-    $('o-table').innerHTML = rows.slice(0, 40).map(({ o, st, pl }) => `<tr><td>${esc(o.id)}</td><td>${srcTag(o.source)}</td><td>${fmtDT(o.created)}</td><td>${esc(o.customer)}</td><td>${o.hub} → ${o.dest}</td><td>${slotsTxt(o.slots)}</td><td>${o.reefer ? '냉장' : '상온'}</td><td>${pl ? pl.sail.s.ship + ' ' + fmtDT(pl.sail.s.dep) : '배편 대기'}</td><td>${st}</td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">조건에 맞는 주문이 없습니다.</td></tr>';
-    $('o-table-note').textContent = `${rows.length}건 중 최근 ${Math.min(40, rows.length)}건을 표시합니다. CSV에는 ${rows.length}건이 모두 들어갑니다. 가상 주문은 가상 데이터(2026년 10월 4주)로 만든 시연용입니다.`;
+    // 표
+    const fo = val('aout'), fr = val('aret');
+    $('a-out-table').innerHTML = outs.filter((x) => !fo || x.st === fo).slice(0, 60).map(({ o, st, why, pl }) => `<tr><td>${esc(o.id)}</td><td>${srcTag(o.source)}</td><td>${esc(o.customer)}</td><td>${o.region} → ${P_BY[o.port].name}</td><td>${slotsTxt(o.slots)}</td><td>${o.reefer ? '냉장' : '상온'}</td><td>${pl ? sailName(pl.sail.s) : '—'}</td><td>${stPill(st)}</td><td class="wrapcell">${why}</td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">해당하는 요청이 없습니다.</td></tr>';
+    $('a-ret-table').innerHTML = rets.filter((x) => !fr || x.st === fr).slice(0, 60).map(({ q, st, why }) => `<tr><td>${esc(q.id)}</td><td>${srcTag(q.source)}</td><td>${esc(q.shipper)}</td><td>${q.region}${q.port === 'auto' ? '' : ' · ' + P_BY[q.port].name}</td><td>${slotsTxt(q.slots)}</td><td>${q.reefer ? '냉장' : '상온'}</td><td>${fmtTime(q.readyT)}</td><td>${stPill(st)}</td><td class="wrapcell">${why}</td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">해당하는 요청이 없습니다.</td></tr>';
   };
-  $('o-csv').addEventListener('click', () => {
-    download('itsum_orders.csv', [['order_id', 'source', 'created_at', 'customer_name', 'origin_hub', 'destination', 'volume_slots', 'reefer', 'assigned_ship', 'assigned_sailing_datetime', 'eta_destination', 'status'],
-      ...orderRows().map(({ o, st, pl }) => [o.id, o.source, fmtDT(o.created), o.customer, o.hub, o.dest, o.slots, o.reefer ? 1 : 0, pl ? pl.sail.s.ship : '', pl ? fmtDT(pl.sail.s.dep) : '', pl ? fmtDT(etaDest(o, pl.sail)) : '', st])]);
-  });
+  $('a-date').addEventListener('change', (e) => { opsDate = e.target.value; renderDaily(); });
+  $('a-port').addEventListener('change', (e) => { opsPort = e.target.value; renderDaily(); });
+  document.querySelectorAll('input[name="aout"], input[name="aret"]').forEach((r) => r.addEventListener('change', renderDaily));
+  $('a-out-csv').addEventListener('click', () => download(`itsum_outbound_${opsDate}.csv`, [['order_id', 'source', 'customer', 'origin_region', 'port', 'slots', 'reefer', 'sailing', 'status', 'detail'], ...outRows().map(({ o, st, why, pl }) => [o.id, o.source, o.customer, o.region, P_BY[o.port].name, o.slots, o.reefer ? 1 : 0, pl ? sailName(pl.sail.s) : '', st, why])]));
+  $('a-ret-csv').addEventListener('click', () => download(`itsum_return_${opsDate}.csv`, [['request_id', 'source', 'shipper', 'dest_region', 'slots', 'reefer', 'ready', 'status', 'detail'], ...retRows().map(({ q, st, why }) => [q.id, q.source, q.shipper, q.region, q.slots, q.reefer ? 1 : 0, fmtDT(q.readyT), st, why])]));
 
   // ---- 화면 B: 배송 계획 ----
-  let opsDate = null;
-  const planKeys = () => {
-    const D = data(), out = [];
-    if (!D.minKey) return out;
-    for (let k = D.minKey; k <= addDays(D.maxKey, 2); k = addDays(k, 1)) if (D.byDay.has(k) || planDay(addDays(k, -1), 'cur').carryOut.length) out.push(k);
-    return out;
-  };
-  const fillDates = (sel) => {
-    const keys = planKeys(), today = keyOf(nowMin());
-    if (!opsDate || !keys.includes(opsDate)) opsDate = [...keys].reverse().find((k) => k <= today) || keys[0];
-    sel.innerHTML = keys.map((k) => `<option value="${k}"${k === opsDate ? ' selected' : ''}>${fmtMD(k)}${(data().byDay.get(k) || []).some((o) => o.source === '실제') ? ' · 실제 예약 있음' : ''}</option>`).join('');
-  };
-  const sailName = (s) => `${s.ship} ${fmtTime(s.dep)}`;
   const opsTruckSvg = (t) => {
     const W = 340, H = 114, bx = 22, by = 6, bw = 240, bh = 84, cols = 6, rows = 2, gap = 3;
     const cw = (bw - gap * (cols + 1)) / cols, ch = (bh - gap * (rows + 1)) / rows;
@@ -1572,7 +1658,7 @@ button.ghost:hover { border-color: var(--orange); }
     let at = 0;
     t.pieces.forEach((p, k) => {
       const color = custColor(p.o.customer);
-      const tip = `<b>${esc(p.o.customer)}</b><br>${slotsTxt(p.slots)} · ${p.o.dest} · 상차 ${k + 1}번<br>${esc(p.o.id)}`;
+      const tip = `<b>${esc(p.o.customer)}</b><br>${slotsTxt(p.slots)} · ${p.o.region} · 상차 ${k + 1}번<br>${esc(p.o.id)}`;
       for (let i = Math.floor(at + 1e-9); i < at + p.slots - 1e-9; i++) {
         const s0 = Math.max(at, i), s1 = Math.min(at + p.slots, i + 1);
         if (s1 - s0 < 1e-9) continue;
@@ -1593,158 +1679,147 @@ button.ghost:hover { border-color: var(--orange); }
     </svg>`;
   };
   const renderPlan = () => {
-    fillDates($('p-date'));
+    fillPort($('p-port'), false); fillDate($('p-date'));
     $('p-th').value = ops.th; $('p-th-out').textContent = pct(ops.th);
-    const key = opsDate;
-    if (!key) { $('p-alerts').innerHTML = '<p class="notice">주문이 없습니다.</p>'; return; }
-    const plan = planDay(key, 'cur');
+    const key = opsDate, P = P_BY[opsPort], plan = planDay(P.id, key, 'cur');
     const alerts = [];
     plan.sailings.forEach((sl) => {
       if (!sl.ok) alerts.push(`<p class="notice high"><b>${sailName(sl.s)} 출항편 사용 중지</b> · ${sl.forced ? '운영자가 결항 처리했습니다.' : `결항 확률 ${pct(sl.p)}가 기준값 ${pct(ops.th)}를 넘었습니다.`}</p>`);
       else if (sl.p > 0.2) alerts.push(`<p class="notice"><b>${sailName(sl.s)} 결항 주의</b> · 결항 확률 ${pct(sl.p)}</p>`);
     });
-    const missed = plan.orders.filter((x) => !x.carried && !x.nightOk);
-    const bumped = plan.orders.filter((x) => { const pl = plan.placed.get(x.o.id); return x.carried || (pl && x.nightOk && !plan.sailings[0].ok); });
+    const late = plan.sailings.length > 1 ? plan.orders.filter((x) => !x.carried && !x.firstOk) : [];
+    const bumped = plan.orders.filter((x) => x.carried || (x.firstOk && !plan.sailings[0].ok && plan.placed.has(x.o.id)));
     const carry = plan.carryOut;
-    alerts.push(`<p class="notice">01:00편 마감(전날 23:00) 뒤 목포에 도착해 08:30편으로 넘어간 주문 <b>${missed.length}건</b>(${slotsTxt(missed.reduce((a, x) => a + x.o.slots, 0))})${bumped.length ? ` · 결항으로 다른 배편에 탄 주문 <b>${bumped.length}건</b>` : ''}${carry.length ? ` · 탈 배가 없어 다음 날로 이월 <b>${carry.length}건</b>(${slotsTxt(carry.reduce((a, x) => a + x.o.slots, 0))})` : ''}</p>`);
+    alerts.push(`<p class="notice">${late.length ? `첫 배편 마감 뒤 출발항에 도착해 다음 배편으로 간 주문 <b>${late.length}건</b>(${slotsTxt(late.reduce((a, x) => a + x.o.slots, 0))})` : '마감을 놓친 주문 없음'}${bumped.length ? ` · 결항으로 다른 배편에 탄 주문 <b>${bumped.length}건</b>` : ''}${carry.length ? ` · 탈 배가 없어 다음 날로 이월 <b>${carry.length}건</b>(${slotsTxt(carry.reduce((a, x) => a + x.o.slots, 0))})` : ''}${P.real ? '' : ` · ${P.name} 배편·운임은 <span class="tag asm">가정</span>`}</p>`);
     $('p-alerts').innerHTML = alerts.join('');
 
-    // 경로 요약
     const flows = new Map();
     for (const x of plan.orders) {
-      const pl = plan.placed.get(x.o.id), k = x.o.hub + '|' + (pl ? pl.sail.s.id : 'carry');
-      const f = flows.get(k) || { hub: x.o.hub, sail: pl ? pl.sail : null, slots: 0, dest: new Map() };
-      f.slots += x.o.slots; f.dest.set(x.o.dest, (f.dest.get(x.o.dest) || 0) + x.o.slots); flows.set(k, f);
+      const pl = plan.placed.get(x.o.id), k = x.o.region + '|' + (pl ? pl.sail.s.dep : 'carry');
+      const f = flows.get(k) || { region: x.o.region, sail: pl ? pl.sail : null, slots: 0, n: 0 };
+      f.slots += x.o.slots; f.n++; flows.set(k, f);
     }
-    const hubOrder = ['수도권', '대전', '광주', '기타'];
-    $('p-route').innerHTML = [...flows.values()].sort((a, b) => hubOrder.indexOf(a.hub) - hubOrder.indexOf(b.hub) || (a.sail ? a.sail.s.dep : 1e12) - (b.sail ? b.sail.s.dep : 1e12)).map((f) => `<div class="flow-row"><span class="chip hub">${f.hub}</span><span class="to">→</span><span class="chip">목포 합적 지점</span><span class="to">→</span>${f.sail ? `<span class="chip ship">${sailName(f.sail.s)}</span><span class="to">→</span><span class="chip">제주항 ${fmtTime(f.sail.s.arr)}</span>` : '<span class="chip off">탈 배 없음 · 다음 날 이월</span>'}<span class="to">→</span>${[...f.dest].map(([d, v]) => `<span class="chip">${d} ${slotsTxt(v)}</span>`).join('')}<span class="qty">총 ${slotsTxt(f.slots)}</span></div>`).join('') || '<p class="empty-note">이날 주문이 없습니다.</p>';
+    $('p-route').innerHTML = [...flows.values()].sort((a, b) => REGIONS.indexOf(a.region) - REGIONS.indexOf(b.region) || (a.sail ? a.sail.s.dep : 1e12) - (b.sail ? b.sail.s.dep : 1e12)).map((f) => `<div class="flow-row"><span class="chip hub">${f.region}</span><span class="to">→</span><span class="chip">${P.name} 합적 지점</span><span class="to">→</span>${f.sail ? `<span class="chip ship">${f.sail.s.ship} ${fmtTime(f.sail.s.dep)}</span><span class="to">→</span><span class="chip">제주항 ${fmtDT(f.sail.s.arr)}</span>` : '<span class="chip off">탈 배 없음 · 다음 날 이월</span>'}<span class="qty">${f.n}건 · ${slotsTxt(f.slots)}</span></div>`).join('') || '<p class="empty-note">이날 이 출발항 주문이 없습니다.</p>';
 
-    // 배편별 트럭 배정표
     $('p-sailings').innerHTML = plan.sailings.map((sl) => {
-      const lv = riskLevel(sl.p), fare = truckCost(sl.s.dep, 0), load = sl.trucks.reduce((a, t) => a + t.load, 0);
-      const btn = sl.ok || sl.forced ? `<button type="button" class="ghost sm" data-cancel="${sl.s.dep}">${sl.forced ? '결항 처리 취소' : '이 배편 결항 처리'}</button>` : '<span class="small muted">기준값 초과로 자동 제외</span>';
+      const lv = riskLevel(sl.p), fare = truckCost(P, sl.s.dep), load = sl.trucks.reduce((a, t) => a + t.load, 0);
+      const btn = sl.ok || sl.forced ? `<button type="button" class="ghost sm" data-cancel="${P.id}@${sl.s.dep}">${sl.forced ? '결항 처리 취소' : '이 배편 결항 처리'}</button>` : '<span class="small muted">기준값 초과로 자동 제외</span>';
       const rows = sl.trucks.map((t) => {
         const who = new Map(); t.pieces.forEach((p) => who.set(p.o.customer, (who.get(p.o.customer) || 0) + p.slots));
-        const dests = [...new Set(t.pieces.map((p) => p.o.dest))];
-        return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td class="wrapcell">${[...who].map(([c, v]) => esc(c) + ' ' + slotsTxt(v)).join(', ')}</td><td>${meter(t.load)}</td><td class="dests">${dests.join(' · ')}</td></tr>`;
+        return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td class="wrapcell">${[...who].map(([c, v]) => esc(c) + ' ' + slotsTxt(v)).join(', ')}</td><td>${meter(t.load)}</td></tr>`;
       }).join('');
       return `<section class="card${sl.ok ? '' : ' off'}">
-        <div class="sail-head"><div><h3>${sl.s.ship} · ${sl.s.label} 배편</h3><div class="meta">${fmtDT(sl.s.dep)} 목포 출항 → ${fmtDT(sl.s.arr)} 제주항 · 마감 ${fmtDT(sl.s.cutoff)}</div></div>
+        <div class="sail-head"><div><h3>${sl.s.ship} · ${sl.s.label} 배편${asmTag(P)}</h3><div class="meta">${fmtDT(sl.s.dep)} ${P.name} 출항 → ${fmtDT(sl.s.arr)} 제주항 · 마감 ${fmtDT(sl.s.cutoff)}</div></div>
           <div class="row"><span class="badge ${lv.cls}">${lv.txt} ${pct(sl.p)}</span><span class="pill ${sl.ok ? 'ok' : 'off'}">${sl.ok ? '운항 예정' : '사용 중지'}</span></div></div>
         <div class="row" style="justify-content:space-between">${btn}<span class="small muted">트럭 ${sl.trucks.length}대 · ${slotsTxt(load)} · 도선료 합 ${won(sl.trucks.length * fare)}</span></div>
-        ${rows ? `<div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>실린 주문</th><th>적재율</th><th>목적지 권역</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="empty-note">배정된 트럭이 없습니다.</p>'}
+        ${rows ? `<div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>실린 주문</th><th>적재율</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="empty-note">배정된 트럭이 없습니다.</p>'}
       </section>`;
     }).join('');
 
-    // 결항 처리로 바뀐 주문
     const D = data(), prevKey = addDays(key, -1);
-    const affected = D.orders.filter((o) => { const k = keyOf(o.firstDep); return k === key || k === prevKey; }).map((o) => ({ o, b: finalPlace(o, 'base'), c: finalPlace(o, 'cur') })).filter((x) => x.b && (!x.c || x.c.sail.s.dep !== x.b.sail.s.dep));
-    const anyForced = plan.sailings.some((sl) => sl.forced);
-    $('p-affected-card').hidden = !anyForced && !affected.length;
-    $('p-affected').innerHTML = affected.map(({ o, b, c }) => `<tr><td>${esc(o.id)} ${srcTag(o.source)}</td><td>${esc(o.customer)}</td><td>${slotsTxt(o.slots)}</td><td>${sailName(b.sail.s)} (${fmtMD(keyOf(b.sail.s.dep))})</td><td>${fmtDT(etaDest(o, b.sail))}</td><td>${c ? sailName(c.sail.s) + ' (' + fmtMD(keyOf(c.sail.s.dep)) + ')' : '배편 대기'}</td><td>${c ? fmtDT(etaDest(o, c.sail)) : '—'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty-note">바뀐 주문이 없습니다.</td></tr>';
+    const affected = D.orders.filter((o) => o.port === P.id && [key, prevKey].includes(keyOf(o.firstDep))).map((o) => ({ o, b: finalPlace(o, 'base'), c: finalPlace(o, 'cur') })).filter((x) => x.b && (!x.c || x.c.sail.s.dep !== x.b.sail.s.dep));
+    $('p-affected-card').hidden = !plan.sailings.some((sl) => sl.forced) && !affected.length;
+    $('p-affected').innerHTML = affected.map(({ o, b, c }) => `<tr><td>${esc(o.id)} ${srcTag(o.source)}</td><td>${esc(o.customer)}</td><td>${slotsTxt(o.slots)}</td><td>${sailName(b.sail.s)} (${fmtMD(keyOf(b.sail.s.dep))})</td><td>${fmtDT(readyOf(b.sail))}</td><td>${c ? sailName(c.sail.s) + ' (' + fmtMD(keyOf(c.sail.s.dep)) + ')' : '배편 대기'}</td><td>${c ? fmtDT(readyOf(c.sail)) : '—'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty-note">바뀐 주문이 없습니다.</td></tr>';
 
-    // 트럭 그림
     const trucks = plan.sailings.filter((sl) => sl.ok).flatMap((sl) => sl.trucks);
-    $('p-trucks').innerHTML = trucks.map((t) => `<figure><figcaption><span><b>${t.id}</b> · ${t.reefer ? '냉장' : '상온'} · ${sailName(t.sail.s)}</span><span>${slotsTxt(t.load)} / 12칸</span></figcaption>${opsTruckSvg(t)}</figure>`).join('') + '<div class="tip" hidden></div>';
+    $('p-trucks').innerHTML = trucks.map((t) => `<figure><figcaption><span><b>${t.id}</b> · ${t.reefer ? '냉장' : '상온'} · ${fmtTime(t.sail.s.dep)}편</span><span>${slotsTxt(t.load)} / 12칸</span></figcaption>${opsTruckSvg(t)}</figure>`).join('') + '<div class="tip" hidden></div>';
     bindTips($('p-trucks'));
     const names = [...new Set(trucks.flatMap((t) => t.pieces.map((p) => p.o.customer)))];
     const legendNames = [...COMPANIES.filter((c) => names.includes(c)), ...(names.some((n) => !COMPANIES.includes(n)) ? ['실제 예약 고객'] : [])];
-    $('p-legend').innerHTML = legendNames.map((n) => `<span><i style="background:${n === '실제 예약 고객' ? CAT[6] : custColor(n)}"></i>${n}</span>`).join('');
+    $('p-legend').innerHTML = legendNames.map((n) => `<span><i style="background:${n === '실제 예약 고객' ? CAT[6] : custColor(n)}"></i>${n}</span>`).join('') || '<span>실린 화물 없음</span>';
 
-    // 날씨
     const wxRows = [];
-    for (let i = 0; i < 4; i++) for (const s of sailingsOn(addDays(key, i))) { const w = wxFor(s), lv = riskLevel(w.p); wxRows.push(`<tr><td>${fmtMD(keyOf(s.dep))}</td><td>${sailName(s)}</td><td>${num(w.w, 1)}m</td><td>${num(w.v, 1)}m/s</td><td><span class="badge ${lv.cls}">${lv.txt} ${pct(w.p)}</span>${w.sample ? '' : ' <span class="small muted">월평균</span>'}</td></tr>`); }
+    for (let i = 0; i < 4; i++) for (const s of sailingsOn(P, parseDay(addDays(key, i)))) { const w = wxFor(s), lv = riskLevel(w.p); wxRows.push(`<tr><td>${fmtMD(keyOf(s.dep))}</td><td>${s.ship} ${fmtTime(s.dep)}</td><td>${num(w.w, 1)}m</td><td>${num(w.v, 1)}m/s</td><td><span class="badge ${lv.cls}">${lv.txt} ${pct(w.p)}</span>${w.sample ? '' : ' <span class="small muted">월평균</span>'}</td></tr>`); }
     $('p-wx').innerHTML = wxRows.join('');
   };
+  $('p-port').addEventListener('change', (e) => { opsPort = e.target.value; renderPlan(); });
   $('p-date').addEventListener('change', (e) => { opsDate = e.target.value; renderPlan(); });
   $('p-th').addEventListener('input', (e) => { ops.th = +e.target.value; saveOps(); bumpOps(); syncOverrides(); renderPlan(); });
   $('p-sailings').addEventListener('click', (e) => {
     const b = e.target.closest('[data-cancel]');
     if (!b) return;
-    const dep = +b.dataset.cancel, i = ops.forced.indexOf(dep);
-    if (i >= 0) ops.forced.splice(i, 1); else ops.forced.push(dep);
+    const k = b.dataset.cancel, i = ops.forced.indexOf(k);
+    if (i >= 0) ops.forced.splice(i, 1); else ops.forced.push(k);
     saveOps(); bumpOps(); syncOverrides(); renderPlan();
   });
 
   // ---- 화면 C: 복화 매칭 ----
   let monthCache = null;
   const renderBack = () => {
-    fillDates($('bk-date'));
-    const key = opsDate;
-    if (!key) return;
-    const bh = backhaul(key);
+    fillDate($('bk-date'));
+    const bh = backhaul(opsDate);
     const cap = bh.trucks.length * SLOTS, matched = bh.trucks.reduce((a, t) => a + t.load, 0), asked = bh.reqs.reduce((a, q) => a + q.slots, 0);
     const loaded = bh.trucks.filter((t) => t.pieces.length);
-    const revenue = loaded.reduce((a, t) => a + FARE_LOADED + HANDLING * t.load, 0);
-    const gain = loaded.length * FARE_LOADED - loaded.length * (FARE_LOADED - FARE_EMPTY);
+    const revenue = loaded.reduce((a, t) => a + t.P.fare + HANDLING * t.load, 0);
+    const extra = loaded.reduce((a, t) => a + t.P.fare - t.P.empty, 0);
     $('bk-kpis').innerHTML = [
       ['귀로 트럭', bh.trucks.length + '대', `냉장 ${bh.trucks.filter((t) => t.reefer).length} · 상온 ${bh.trucks.filter((t) => !t.reefer).length}`],
       ['매칭된 칸', slotsTxt(matched), `요청 ${slotsTxt(asked)} 중`],
       ['귀로 공차율', `100%<span class="arrow">→</span>${cap ? pct(1 - matched / cap) : '—'}`, '매칭 전 → 매칭 후 (빈 칸 비율)'],
-      ['귀로 운임 수입', won(revenue), `공차 대비 트럭당 ${won(loaded.length ? gain / loaded.length : 0)} 이득`],
+      ['육지행 운임 수입', won(revenue), `늘어난 도선료 ${won(extra)} 제외 시 ${won(revenue - extra)} 이득`],
     ].map(kpi).join('');
     $('bk-table').innerHTML = bh.trucks.map((t) => {
-      const goods = t.pieces.map((p) => `${esc(p.q.item)} (${esc(p.q.shipper)}) ${slotsTxt(p.slots)}${p.q.source === '실제' ? ' ' + srcTag('실제') : ''}`).join(', ');
-      return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td>${fmtDT(t.ret.dep)}</td><td class="wrapcell">${goods || '<span class="muted">공차</span>'}</td><td>${meter(t.load)}</td><td>${t.pieces.length ? won(FARE_LOADED + HANDLING * t.load) : '—'}</td></tr>`;
-    }).join('') || '<tr><td colspan="6" class="empty-note">이날 제주에 도착하는 트럭이 없습니다.</td></tr>';
-    $('bk-wait').innerHTML = bh.waiting.map((w) => `<tr><td>${esc(w.q.id)} ${srcTag(w.q.source)}</td><td>${esc(w.q.shipper)}</td><td>${w.q.item}</td><td>${slotsTxt(w.left)}${w.left < w.q.slots ? ` / ${slotsTxt(w.q.slots)}` : ''}</td><td>${w.q.reefer ? '냉장' : '상온'}</td><td>${fmtMD(w.q.ready)}</td><td>${w.reason}</td><td>${w.action}</td></tr>`).join('') || '<tr><td colspan="8" class="empty-note">대기 중인 요청이 없습니다.</td></tr>';
+      const goods = t.pieces.map((p) => `${esc(p.q.shipper)} ${slotsTxt(p.slots)}${p.q.source === '실제' ? ' ' + srcTag('실제') : ''}`).join(', ');
+      return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td>${t.P.name}${asmTag(t.P)}</td><td>${fmtDT(t.ret.dep)}</td><td class="wrapcell">${goods || '<span class="muted">공차</span>'}</td><td>${meter(t.load)}</td><td>${t.pieces.length ? won(t.P.fare + HANDLING * t.load) : '—'}</td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="empty-note">이날 제주에 도착하는 트럭이 없습니다.</td></tr>';
+    $('bk-wait').innerHTML = bh.waiting.map((w) => `<tr><td>${esc(w.q.id)} ${srcTag(w.q.source)}</td><td>${esc(w.q.shipper)}</td><td>${slotsTxt(w.left)}${w.left < w.q.slots ? ` / ${slotsTxt(w.q.slots)}` : ''}</td><td>${w.q.reefer ? '냉장' : '상온'}</td><td>${w.q.region}${w.q.port === 'auto' ? '' : ' · ' + P_BY[w.q.port].name}</td><td>${fmtDT(w.q.readyT)}</td><td>${w.reason}</td><td>${w.action}</td></tr>`).join('') || '<tr><td colspan="8" class="empty-note">대기 중인 요청이 없습니다.</td></tr>';
 
-    // 월별 요청량 vs 귀로 공간
     if (!monthCache) {
-      const oct = []; for (let k = SAMPLE_START; k <= '2026-10-31'; k = addDays(k, 1)) oct.push(planDay(k, 'cur').sailings.reduce((a, sl) => a + (sl.ok ? sl.trucks.length : 0), 0));
-      const avgTrucks = oct.reduce((a, b) => a + b, 0) / oct.length;
-      const months = ALL_M.map((m) => ({ m, req: 0, days: 0 }));
+      const now = nowMin(), past = WIN_KEYS.filter((k) => parseDay(k) < day0(now));
+      const perDay = past.map((k) => PORTS.reduce((a, P) => a + planDay(P.id, k, 'cur').sailings.reduce((x, sl) => x + (sl.ok ? sl.trucks.length : 0), 0), 0));
+      const avgTrucks = perDay.length ? perDay.reduce((a, b) => a + b, 0) / perDay.length : 0;
+      const months = Array.from({ length: 12 }, (_, i) => ({ m: i + 1, req: 0, days: 0 }));
       for (let k = '2026-01-01'; k <= '2026-12-31'; k = addDays(k, 1)) { const e = months[+k.slice(5, 7) - 1]; e.days++; e.req += returnsForDay(k).reduce((a, q) => a + q.slots, 0); }
       months.forEach((e) => { e.cap = avgTrucks * SLOTS * e.days; });
       monthCache = { months, avgTrucks };
     }
     const { months, avgTrucks } = monthCache;
-    colChart($('bk-month'), months.map((e) => ({ label: e.m + '월', v: e.req, ref: e.cap, tip: `<b>${e.m}월</b><br>귀로 요청 ${num(e.req)}칸<br>귀로 공간 ${num(e.cap)}칸 (${pct(e.req / e.cap)} 사용)<br>감귤·채소 지수 ${SEASON[e.m]}` })), { color: 'var(--orange)', h: 220 });
-    const byUse = [...months].sort((a, b) => a.req / a.cap - b.req / b.cap);
-    $('bk-month-note').textContent = `귀로 공간은 10월 하루 평균 트럭 ${num(avgTrucks, 1)}대 기준입니다. 공간이 가장 많이 남는 달은 ${byUse.slice(0, 2).map((e) => e.m + '월').join('·')}(공간의 ${pct(byUse[0].req / byUse[0].cap)}만 사용), 가장 붐비는 달은 ${byUse[byUse.length - 1].m}월(${pct(byUse[byUse.length - 1].req / byUse[byUse.length - 1].cap)})입니다. 감귤·채소 지수는 실데이터 파일이 없어 둔 가정값입니다.`;
+    colChart($('bk-month'), months.map((e) => ({ label: e.m + '월', v: e.req, ref: e.cap, tip: `<b>${e.m}월</b><br>육지행 요청 ${num(e.req)}칸<br>귀로 공간 ${num(e.cap)}칸 (${pct(e.req / e.cap)} 사용)<br>계절 지수 ${SEASON[e.m]}` })), { color: 'var(--orange)', h: 220 });
+    const byUse = [...months].sort((a, b) => a.req / a.cap - b.req / b.cap), lo = byUse[0], hi = byUse[byUse.length - 1];
+    $('bk-month-note').textContent = `귀로 공간은 하루 평균 트럭 ${num(avgTrucks, 1)}대(전 출발항, 지난 표본 기간) 기준입니다. 공간이 가장 많이 남는 달은 ${byUse.slice(0, 2).map((e) => e.m + '월').join('·')}(공간의 ${pct(lo.req / lo.cap)}만 사용), 가장 붐비는 달은 ${hi.m}월(${pct(hi.req / hi.cap)})입니다. 계절 지수는 감귤·월동채소 출하 시기를 반영한 가정값입니다.`;
   };
   $('bk-date').addEventListener('change', (e) => { opsDate = e.target.value; renderBack(); });
 
-  // ---- 화면 D: 정산 ----
+  // ---- 화면 D: 정산 (출항을 마친 트럭만) ----
   const settle = (keys) => {
-    const cust = new Map(), lines = [], ret = new Map();
+    const now = nowMin(), cust = new Map(), lines = [], ret = new Map();
     const chk = { trucks: 0, ok: 0, capLoss: 0 }, rchk = { trucks: 0, ok: 0 };
     for (const key of keys) {
-      const plan = planDay(key, 'cur');
-      for (const sl of plan.sailings) {
-        if (!sl.ok) continue;
-        const fare = truckCost(sl.s.dep, 0), per = new Map();
-        for (const t of sl.trucks) {
-          let sum = 0;
-          for (const p of t.pieces) {
-            const sh = fare * p.slots / t.load, k = p.o.customer + '|' + t.reefer;
-            sum += sh;
-            const e = per.get(k) || { name: p.o.customer, src: p.o.source, slots: 0, share: 0 };
-            e.slots += p.slots; e.share += sh; per.set(k, e);
+      for (const P of PORTS) {
+        for (const sl of planDay(P.id, key, 'cur').sailings) {
+          if (!sl.ok || sl.s.dep > now) continue;
+          const fare = truckCost(P, sl.s.dep), per = new Map();
+          for (const t of sl.trucks) {
+            let sum = 0;
+            for (const p of t.pieces) {
+              const sh = fare * p.slots / t.load, k = p.o.customer + '|' + t.reefer;
+              sum += sh;
+              const e = per.get(k) || { name: p.o.customer, src: p.o.source, slots: 0, share: 0 };
+              e.slots += p.slots; e.share += sh; per.set(k, e);
+            }
+            chk.trucks++; if (Math.abs(sum - fare) < 0.5) chk.ok++;
           }
-          chk.trucks++; if (Math.abs(sum - fare) < 0.5) chk.ok++;
-        }
-        for (const e of per.values()) {
-          const handling = HANDLING * e.slots, solo = Math.ceil(e.slots / SLOTS - 1e-9) * fare, raw = e.share + handling, bill = Math.min(raw, solo);
-          if (e.share > solo) chk.capLoss += e.share - solo;
-          lines.push([key, sailName(sl.s), e.name, e.src, e.slots, Math.round(e.share), handling, Math.round(bill), solo, Math.round(solo - bill), raw > solo ? 'Y' : '']);
-          const c = cust.get(e.name) || { name: e.name, src: e.src, sail: 0, slots: 0, bill: 0, solo: 0, capped: 0 };
-          c.sail++; c.slots += e.slots; c.bill += bill; c.solo += solo; if (raw > solo) c.capped++;
-          cust.set(e.name, c);
+          for (const e of per.values()) {
+            const handling = HANDLING * e.slots, solo = Math.ceil(e.slots / SLOTS - 1e-9) * fare, raw = e.share + handling, bill = Math.min(raw, solo);
+            if (e.share > solo) chk.capLoss += e.share - solo;
+            lines.push([key, sailName(sl.s), e.name, e.src, e.slots, Math.round(e.share), handling, Math.round(bill), solo, Math.round(solo - bill), raw > solo ? 'Y' : '']);
+            const c = cust.get(e.name) || { name: e.name, src: e.src, sail: 0, slots: 0, bill: 0, solo: 0, capped: 0 };
+            c.sail++; c.slots += e.slots; c.bill += bill; c.solo += solo; if (raw > solo) c.capped++;
+            cust.set(e.name, c);
+          }
         }
       }
-      const bh = backhaul(key);
-      for (const t of bh.trucks) {
-        if (!t.pieces.length) continue;
+      for (const t of backhaul(key).trucks) {
+        if (!t.pieces.length || t.ret.dep > now) continue;
         let sum = 0; const per = new Map();
         for (const p of t.pieces) {
-          const sh = FARE_LOADED * p.slots / t.load; sum += sh;
+          const sh = t.P.fare * p.slots / t.load; sum += sh;
           const e = per.get(p.q.shipper) || { name: p.q.shipper, src: p.q.source, slots: 0, share: 0 };
           e.slots += p.slots; e.share += sh; per.set(p.q.shipper, e);
         }
-        rchk.trucks++; if (Math.abs(sum - FARE_LOADED) < 0.5) rchk.ok++;
+        rchk.trucks++; if (Math.abs(sum - t.P.fare) < 0.5) rchk.ok++;
         for (const e of per.values()) {
-          const solo = Math.ceil(e.slots / SLOTS - 1e-9) * FARE_LOADED, bill = Math.min(e.share + HANDLING * e.slots, solo);
+          const solo = Math.ceil(e.slots / SLOTS - 1e-9) * t.P.fare, bill = Math.min(e.share + HANDLING * e.slots, solo);
           const c = ret.get(e.name) || { name: e.name, src: e.src, slots: 0, bill: 0, solo: 0 };
           c.slots += e.slots; c.bill += bill; c.solo += solo; ret.set(e.name, c);
         }
@@ -1754,63 +1829,68 @@ button.ghost:hover { border-color: var(--orange); }
   };
   let settleCache = null;
   const renderSettle = () => {
-    const today = keyOf(nowMin()), thisM = today.slice(0, 7), lastM = addDays(thisM + '-01', -1).slice(0, 7), keys = planKeys();
+    const thisM = todayKey.slice(0, 7), lastM = addDays(thisM + '-01', -1).slice(0, 7), keys = data().keys;
     const sel = $('s-period');
     if (!sel.options.length) {
-      sel.innerHTML = [[thisM, `이번 달 (${+thisM.slice(5)}월)`], [lastM, `지난 달 (${+lastM.slice(5)}월)`], ['all', '전체']].map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
-      sel.value = keys.some((k) => k.startsWith(thisM)) ? thisM : lastM;
+      sel.innerHTML = [[thisM, `이번 달 (${+thisM.slice(5)}월)`], [lastM, `지난 달 (${+lastM.slice(5)}월)`], ['all', '전체 (표본 기간)']].map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+      sel.value = thisM;
     }
-    const p = sel.value, inP = keys.filter((k) => p === 'all' || k.startsWith(p));
+    const p = sel.value, inP = keys.filter((k) => (p === 'all' || k.startsWith(p)) && parseDay(k) <= TODAY0);
     const r = settle(inP);
     settleCache = r;
     const bill = r.cust.reduce((a, c) => a + c.bill, 0), solo = r.cust.reduce((a, c) => a + c.solo, 0), rbill = r.ret.reduce((a, c) => a + c.bill, 0);
     $('s-kpis').innerHTML = [
-      ['고객 청구액', won(bill), `${r.cust.length}개 고객 · 배편 ${inP.length}일`],
+      ['고객 청구액', won(bill), `${r.cust.length}개 고객 · ${inP.length}일`],
       ['혼자 보냈을 때', won(solo), '같은 물량을 고객마다 트럭으로 보낼 때'],
       ['고객 절감액', won(solo - bill), solo ? pct((solo - bill) / solo) + ' 절감' : '—'],
-      ['귀로 화주 청구액', won(rbill), `${r.ret.length}개 화주`],
+      ['육지행 화주 청구액', won(rbill), `${r.ret.length}개 화주`],
     ].map(kpi).join('');
     const row = (c, withSail) => `<tr><td>${esc(c.name)}</td><td>${srcTag(c.src)}</td>${withSail ? `<td>${c.sail}</td>` : ''}<td>${slotsTxt(c.slots)}</td><td>${won(c.bill)}</td><td>${won(c.solo)}</td><td>${won(c.solo - c.bill)}</td><td>${pct((c.solo - c.bill) / c.solo)}</td>${withSail ? `<td>${c.capped ? c.capped + '회' : '—'}</td>` : ''}</tr>`;
-    $('s-cust').innerHTML = r.cust.map((c) => row(c, true)).join('') || '<tr><td colspan="9" class="empty-note">기간 안 정산할 주문이 없습니다.</td></tr>';
-    $('s-ret').innerHTML = r.ret.map((c) => row(c, false)).join('') || '<tr><td colspan="7" class="empty-note">기간 안 매칭된 귀로 화물이 없습니다.</td></tr>';
+    $('s-cust').innerHTML = r.cust.map((c) => row(c, true)).join('') || '<tr><td colspan="9" class="empty-note">기간 안 출항을 마친 주문이 없습니다.</td></tr>';
+    $('s-ret').innerHTML = r.ret.map((c) => row(c, false)).join('') || '<tr><td colspan="7" class="empty-note">기간 안 매칭된 육지행 화물이 없습니다.</td></tr>';
     const allLe = r.cust.every((c) => c.bill <= c.solo + 0.5);
     $('s-check').innerHTML = `<span class="${r.chk.ok === r.chk.trucks ? 'okmark' : 'ngmark'}">${r.chk.ok === r.chk.trucks ? '✓' : '✗'}</span> 트럭 ${r.chk.trucks}대 중 ${r.chk.ok}대: 같은 트럭 고객 청구액 합(하역비 제외) = 트럭 도선료 · <span class="${allLe ? 'okmark' : 'ngmark'}">${allLe ? '✓' : '✗'}</span> 모든 고객 청구액 ≤ 혼자 보낼 때 비용${r.chk.capLoss > 0.5 ? ` · 상한으로 깎인 도선료 ${won(r.chk.capLoss)}은 잇섬이 부담` : ''}`;
-    $('s-ret-check').innerHTML = `<span class="${r.rchk.ok === r.rchk.trucks ? 'okmark' : 'ngmark'}">${r.rchk.ok === r.rchk.trucks ? '✓' : '✗'}</span> 귀로 트럭 ${r.rchk.trucks}대 중 ${r.rchk.ok}대: 화주 청구액 합(하역비 제외) = 적재 도선료 364,380원`;
+    $('s-ret-check').innerHTML = `<span class="${r.rchk.ok === r.rchk.trucks ? 'okmark' : 'ngmark'}">${r.rchk.ok === r.rchk.trucks ? '✓' : '✗'}</span> 귀로 트럭 ${r.rchk.trucks}대 중 ${r.rchk.ok}대: 화주 청구액 합(하역비 제외) = 그 항로 적재 도선료`;
   };
   $('s-period').addEventListener('change', renderSettle);
-  $('s-csv').addEventListener('click', () => {
-    if (!settleCache) return;
-    download('itsum_settlement_' + $('s-period').value + '.csv', [['sailing_date', 'sailing', 'customer', 'source', 'slots', 'fare_share', 'handling', 'billed', 'solo_cost', 'saving', 'cap_applied'], ...settleCache.lines]);
-  });
+  $('s-csv').addEventListener('click', () => { if (settleCache) download('itsum_settlement_' + $('s-period').value + '.csv', [['sailing_date', 'sailing', 'customer', 'source', 'slots', 'fare_share', 'handling', 'billed', 'solo_cost', 'saving', 'cap_applied'], ...settleCache.lines]); });
 
-  // ---- 고객 화면: 귀로 요청 ----
+  // ---- 고객 화면: 육지로 배송 요청 ----
+  const rqCargo = makeCargo($('rq-cargo'), () => rqConvert());
+  fillRegionPort($('rq-region'), $('rq-port'), '자동 (빈 트럭이 있는 항구)');
+  const rqConvert = () => {
+    const lines = rqCargo.get().filter((l) => l.qty > 0);
+    $('rq-row-hours').hidden = $('rq-region').value !== '기타';
+    $('rq-convert').innerHTML = lines.length ? `${lines.map((l) => lineTxt(l, 1.2)).join(' + ')} → <b>${slotsTxt(billSlots(lines.reduce((a, l) => a + lineSlots(l, 1.2), 0)))}</b>` : '—';
+  };
+  $('rq-region').addEventListener('change', rqConvert);
   const renderReturnList = () => {
+    rqConvert();
     $('rq-empty').hidden = myReturns.length > 0;
     $('rq-list').innerHTML = myReturns.map((q) => {
-      const bh = data().minKey ? backhaul(q.ready) : null;
-      const t = bh && bh.trucks.find((x) => x.pieces.some((p) => p.q.id === q.id));
-      const mine = t ? t.pieces.filter((p) => p.q.id === q.id).reduce((a, p) => a + p.slots, 0) : 0;
-      const st = t ? `귀로 트럭 배정 · ${fmtDT(t.ret.dep)} 제주 출항 · 예상 운임 ${won(FARE_LOADED * mine / t.load + HANDLING * mine)}` : '귀로 트럭 매칭 대기';
-      return `<div class="card" style="padding:12px 16px;gap:4px;box-shadow:none"><b>${esc(q.id)}</b><span class="small muted">${esc(q.item)} ${slotsTxt(q.slots)} · ${q.reefer ? '냉장' : '상온'} · 준비일 ${fmtMD(q.ready)} · ${esc(q.to)}행</span><span class="small">${st}</span></div>`;
+      const bh = backhaul(keyOf(q.readyT)), uq = userReturns().find((x) => x.id === q.id), stt = retStatus(bh, uq);
+      const g = bh.got.get(q.id) || [];
+      const fare = g.reduce((a, x) => a + x.t.P.fare * x.slots / x.t.load + HANDLING * x.slots, 0);
+      const st = stt.st === '매칭 완료' ? `육지행 트럭 배정 · ${g.map((x) => `${x.t.P.name} ${fmtDT(x.t.ret.arr)} 도착`).join(', ')} · 예상 운임 ${won(fare)}` : `매칭 대기 · ${stt.why}`;
+      return `<div class="card" style="padding:12px 16px;gap:4px;box-shadow:none"><b>${esc(q.id)}</b><span class="small muted">${esc(q.desc)} · ${q.reefer ? '냉장' : '상온'} · 준비 ${fmtDT(q.readyT)} · ${esc(q.region)}행${q.port === 'auto' ? '' : ' (' + P_BY[q.port].name + ')'}</span><span class="small">${st}</span></div>`;
     }).join('');
   };
   $('rform').addEventListener('submit', (e) => {
     e.preventDefault();
-    const raw = +$('rq-slots').value, ready = $('rq-ready').value;
-    const err = !(raw > 0) ? '칸 수를 0보다 크게 입력해 주세요.' : !/^\d{4}-\d{2}-\d{2}$/.test(ready) ? '준비일을 골라 주세요.' : '';
+    const lines = rqCargo.get().filter((l) => l.qty > 0), date = $('rq-date').value, time = $('rq-time').value, region = $('rq-region').value;
+    const err = !lines.length ? '화물을 한 가지 이상, 0보다 크게 입력해 주세요.' : !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < todayKey ? '준비일을 오늘 이후로 골라 주세요.' : !/^\d{2}:\d{2}$/.test(time) ? '준비 시각을 입력해 주세요.' : '';
     $('rq-error').hidden = !err; $('rq-error').textContent = err;
     if (err) return;
-    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let sfx = ''; for (let i = 0; i < 4; i++) sfx += abc[Math.floor(Math.random() * abc.length)];
-    const id = 'RQ' + ready.slice(2).replace(/-/g, '') + '-' + sfx;
-    myReturns = [{ id, created: Date.now(), name: $('rq-name').value.trim(), item: $('rq-item').value, slots: Math.max(0.5, Math.ceil(raw * 2 - 1e-9) / 2), reefer: document.querySelector('input[name="rqtemp"]:checked').value === 'cold', ready, to: $('rq-to').value }, ...myReturns];
+    const slots = billSlots(lines.reduce((a, l) => a + lineSlots(l, 1.2), 0));
+    const id = 'RQ' + date.slice(2).replace(/-/g, '') + '-' + randId();
+    myReturns = [{ id, created: Date.now(), name: $('rq-name').value.trim(), lines, desc: lines.map((l) => lineTxt(l, 1.2)).join(' + ') + ' = ' + slotsTxt(slots), slots, reefer: val('rqtemp') === 'cold', region, hours: +$('rq-hours').value, port: $('rq-port').value, readyT: parseDay(date) + (+time.slice(0, 2)) * 60 + (+time.slice(3, 5)) }, ...myReturns];
     try { localStorage.setItem(RQ_KEY, JSON.stringify(myReturns)); } catch (er) { /* 이번 화면에서만 유지 */ }
     $('rq-done-id').textContent = id; $('rq-done').hidden = false;
     bumpOps(); renderReturnList();
   });
 
   // ---- 화면 전환 · 운영자 잠금 ----
-  const OPS_VIEWS = ['ops-orders', 'ops-plan', 'ops-back', 'ops-settle'];
+  const OPS_VIEWS = ['ops-daily', 'ops-plan', 'ops-back', 'ops-settle'];
   const VIEWS = ['quote', 'return', 'booking', 'pricing', ...OPS_VIEWS];
   let pendingOps = null;
   const openPin = (target) => {
@@ -1824,18 +1904,16 @@ button.ghost:hover { border-color: var(--orange); }
     e.preventDefault();
     if (hashStr('itsum:' + $('pin-input').value) === PIN_HASH) {
       authed = true; ss.set('itsum-ops-auth', '1'); closePin();
-      const to = pendingOps || 'ops-orders';
+      const to = pendingOps || 'ops-daily';
       if (location.hash.slice(1) === to) route(); else location.hash = to;
     } else { $('pin-error').hidden = false; $('pin-input').select(); }
   });
   const cancelPin = () => { closePin(); if (OPS_VIEWS.includes(location.hash.slice(1))) location.hash = 'quote'; };
   $('pin-cancel').addEventListener('click', cancelPin);
   $('pin-dlg').addEventListener('cancel', (e) => { e.preventDefault(); cancelPin(); });
-  $('btn-ops').addEventListener('click', () => { if (authed) location.hash = 'ops-orders'; else openPin('ops-orders'); });
+  $('btn-ops').addEventListener('click', () => { if (authed) location.hash = 'ops-daily'; else openPin('ops-daily'); });
   $('btn-cust').addEventListener('click', () => { location.hash = 'quote'; });
   $('btn-logout').addEventListener('click', () => { authed = false; ss.set('itsum-ops-auth', null); location.hash = 'quote'; });
-  document.querySelectorAll('input[name="operiod"]').forEach((r) => r.addEventListener('change', renderOrders));
-  $('o-status').addEventListener('change', renderOrders);
 
   const route = () => {
     let v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'quote';
@@ -1847,22 +1925,21 @@ button.ghost:hover { border-color: var(--orange); }
     document.querySelectorAll('nav.tabs a').forEach((a) => { if (a.dataset.view === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     if (v === 'quote') render();
     else if (v === 'return') renderReturnList();
-    else if (v === 'ops-orders') renderOrders();
+    else if (v === 'ops-daily') renderDaily();
     else if (v === 'ops-plan') renderPlan();
     else if (v === 'ops-back') renderBack();
     else if (v === 'ops-settle') renderSettle();
   };
-  let rto; window.addEventListener('resize', () => { clearTimeout(rto); rto = setTimeout(() => { const v = location.hash.slice(1); if (authed && v === 'ops-orders') renderOrders(); else if (authed && v === 'ops-back') renderBack(); }, 150); });
   window.addEventListener('hashchange', route);
-  $('qform').addEventListener('input', render);
-  $('qform').addEventListener('change', render);
+  $('qform').addEventListener('input', () => render());
+  $('qform').addEventListener('change', () => render());
   $('qform').addEventListener('submit', (e) => e.preventDefault());
-  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (current && step === 3) drawCurve(current); }, 120); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (current && step === 3) drawCurve(current); if (authed && location.hash === '#ops-back') renderBack(); }, 150); });
 
-  const start = (data) => {
-    if (data && data.q) { try { writeInputs(data.q); } catch (e) { /* 이전 입력 복원 실패 시 기본값 */ } }
+  const start = (d) => {
+    if (d && d.q) { try { writeInputs(d.q); } catch (e) { /* 이전 입력 복원 실패 시 기본값 */ } }
     renderList(); renderPricing(); route();
-    goStep(data && [1, 2, 3].includes(data.step) ? data.step : 1);
+    goStep(d && [1, 2, 3].includes(d.step) ? d.step : 1);
   };
   window.claude?.hot?.snapshot?.(() => ({ q: readInputs(), step }));
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
