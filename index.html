@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="잇섬: 덜 찬 화물, 함께 실어 제주까지. 제주행 공동운송 견적·예약 조회·요금 안내 (가상 데이터 기반 시연)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F57C00'/%3E%3Crect x='9' y='11' width='14' height='10' rx='2' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E"><title>잇섬 제주 공동운송</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* PC 가로 레이아웃: 상단 바 + (왼쪽 견적 조건 | 오른쪽 결과). 오렌지 단일 라이트 테마(지정 팔레트). */
+:root {
+  color-scheme: light;
+  --orange: #F57C00;
+  --orange-deep: #E65100;
+  --orange-soft: #FFF3E0;
+  --ink: #3E2723;
+  --ink-muted: #85706A;
+  --paper: #FFFFFF;
+  --line: #EEE7E3;
+  --line-strong: #DED3CE;
+  --subtle: #FBF9F8;
+  --others: #D3C6C0;
+  --risk-low: #2E7D32;
+  --risk-mid: #EF6C00;
+  --risk-high: #C62828;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --r: 12px;
+  --shadow: 0 1px 2px rgba(62, 39, 35, .04), 0 4px 16px rgba(62, 39, 35, .04);
+}
+[hidden] { display: none !important; }
+html { background: var(--paper); }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.55; }
+.gutter { padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+.container { max-width: 1320px; margin-inline: auto; }
+
+/* 상단 바 */
+.topbar { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, .94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.topbar .container { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.logo { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; text-decoration: none; }
+.logo i { width: 26px; height: 26px; border-radius: 7px; background: var(--orange); display: grid; place-items: center; }
+.logo i::after { content: ""; width: 12px; height: 8px; border: 2px solid var(--paper); border-radius: 2px; }
+.tagline { margin: 0; padding-left: 14px; border-left: 1px solid var(--line-strong); color: var(--ink-muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+nav.tabs { display: flex; gap: 4px; background: var(--subtle); border: 1px solid var(--line); border-radius: 10px; padding: 4px; }
+nav.tabs a { padding: 7px 16px; color: var(--ink-muted); text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 7px; white-space: nowrap; }
+nav.tabs a:hover { color: var(--ink); }
+nav.tabs a[aria-current="page"] { background: var(--paper); color: var(--orange-deep); box-shadow: 0 1px 3px rgba(62, 39, 35, .1); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+main { padding-block: 28px 56px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+h2 { margin: 0; font-size: 18px; font-weight: 700; }
+h3 { margin: 0; font-size: 15px; font-weight: 700; }
+.lead { margin: 4px 0 0; color: var(--ink-muted); }
+.muted { color: var(--ink-muted); }
+.small { font-size: 12.5px; }
+p { margin: 0; }
+
+.card { border: 1px solid var(--line); border-radius: var(--r); padding: 20px 22px; display: grid; gap: 14px; align-content: start; background: var(--paper); min-width: 0; box-shadow: var(--shadow); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* 두 단 레이아웃 */
+.layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 24px; align-items: start; }
+.side { position: sticky; top: 88px; display: grid; gap: 14px; }
+.results { display: grid; gap: 20px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.grid2 .span2 { grid-column: 1 / -1; }
+.grid2 { align-items: start; }
+.stack { display: grid; gap: 20px; min-width: 0; }
+table.wrap td, table.wrap th { text-align: left; }
+
+/* 단계 진행 */
+.page-head.center { flex-direction: column; align-items: center; text-align: center; gap: 0; }
+.stepper { list-style: none; margin: 4px auto 28px; padding: 0; display: flex; max-width: 560px; }
+.stepper li { flex: 1; position: relative; display: flex; justify-content: center; }
+.stepper li + li::before { content: ""; position: absolute; top: 17px; left: calc(-50% + 28px); right: calc(50% + 28px); height: 2px; background: var(--line-strong); }
+.stepper li.on::before, .stepper li.past::before { background: var(--orange); }
+.stepper button { all: unset; display: grid; justify-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-muted); }
+.stepper button:disabled { cursor: default; }
+.stepper b { width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--line-strong); background: var(--paper); font-size: 14px; }
+.stepper li.on b { background: var(--orange); border-color: var(--orange); color: var(--paper); }
+.stepper li.on span { color: var(--ink); }
+.stepper li.past b { border-color: var(--orange); color: var(--orange-deep); }
+.stepper button:focus-visible b { outline: 3px solid var(--orange); outline-offset: 2px; }
+.step, .summary, #booked, #result > .foot { max-width: 1040px; margin-inline: auto; box-sizing: border-box; }
+.stack > [aria-labelledby="h-curve"] { order: -1; }
+.step { display: grid; gap: 20px; }
+.form-wide { padding: 28px 32px; gap: 22px; }
+.form-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; }
+.form-cols .col { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.actions button.primary { width: auto; padding-inline: 32px; }
+button.primary:disabled { opacity: .45; cursor: not-allowed; }
+.summary { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--subtle); border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; font-weight: 600; }
+button.link { all: unset; cursor: pointer; color: var(--orange-deep); font-weight: 600; font-size: 13px; }
+button.link:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+#booked { margin-top: 20px; }
+#result > .foot { margin-top: 24px; }
+.step .basis { order: -1; }
+.hero .card { padding-block: 26px; }
+.hero .fare-card .num { font-size: 48px; }
+@media (max-width: 860px) { .form-cols { grid-template-columns: 1fr; } }
+
+/* 입력 폼 */
+form.card { gap: 18px; }
+.fields { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fields .wide { grid-column: 1 / -1; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > span, .field legend { font-size: 12.5px; font-weight: 600; color: var(--ink-muted); padding: 0; }
+fieldset.field { border: 0; margin: 0; padding: 0; }
+input[type="number"], input[type="date"], input[type="time"], input[type="text"], select { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; width: 100%; box-sizing: border-box; min-width: 0; }
+input:hover, select:hover { border-color: #CBBDB6; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; background: var(--subtle); border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; text-align: center; padding: 7px 8px; border-radius: 6px; font-size: 13.5px; font-weight: 600; color: var(--ink-muted); cursor: pointer; }
+.seg input:checked + span { background: var(--paper); color: var(--orange-deep); box-shadow: 0 1px 3px rgba(62, 39, 35, .12); }
+.seg input:focus-visible + span { outline: 3px solid var(--orange); outline-offset: 1px; }
+.unit-row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.convert { font-size: 12.5px; color: var(--ink-muted); background: var(--subtle); border-radius: 8px; padding: 8px 10px; }
+.convert b { color: var(--orange-deep); font-weight: 700; }
+.divider { height: 1px; background: var(--line); margin: 0; border: 0; }
+details.cfg summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); }
+details.cfg .fields { margin-top: 12px; }
+.error { color: var(--risk-high); font-weight: 600; }
+
+/* 핵심 숫자: 운임이 주인공 */
+.hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.hero .card { gap: 6px; }
+.k { font-size: 13px; font-weight: 600; color: var(--ink-muted); }
+.num { font-weight: 700; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.s { font-size: 12.5px; color: var(--ink-muted); }
+.fare-card { background: var(--orange); border-color: var(--orange); color: var(--paper); padding: 22px 26px; }
+.fare-card .k, .fare-card .s { color: var(--paper); opacity: .92; }
+.fare-card .num { font-size: 44px; }
+.save-card .num { color: var(--orange-deep); }
+.hero .card.fare-card { box-shadow: 0 6px 22px rgba(245, 124, 0, .25); }
+
+/* 배정 */
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; margin: 0; }
+.kv dt { color: var(--ink-muted); font-size: 13px; }
+.kv dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, currentColor 9%, white); }
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge.low { color: var(--risk-low); }
+.badge.mid { color: var(--risk-mid); }
+.badge.high { color: var(--risk-high); }
+.notice { border-left: 3px solid var(--orange); background: var(--orange-soft); padding: 10px 12px; border-radius: 0 8px 8px 0; font-size: 13px; }
+.notice.high { border-left-color: var(--risk-high); background: #FDECEA; }
+
+/* 계산 근거 */
+ol.steps { margin: 0; padding: 0; list-style: none; display: grid; }
+ol.steps li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+ol.steps li .v { font-weight: 700; text-align: right; }
+ol.steps li .d { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-muted); }
+ol.steps li.total { border-bottom: 0; font-size: 16px; padding-top: 12px; }
+ol.steps li.total .v { color: var(--orange-deep); }
+.truck-fig { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.truck-fig svg { flex: 1 1 280px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-muted); }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+
+/* 표 */
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { font-size: 12px; color: var(--ink-muted); font-weight: 600; background: var(--subtle); }
+th:first-child, td:first-child { text-align: left; }
+tr.us td { color: var(--orange-deep); font-weight: 700; background: var(--orange-soft); }
+table.wrap td { white-space: normal; }
+
+.chart { position: relative; }
+.tip { position: absolute; pointer-events: none; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; font-size: 12px; line-height: 1.5; box-shadow: 0 4px 14px rgba(62, 39, 35, .12); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+button.primary { font: inherit; font-weight: 700; font-size: 15px; padding: 13px 18px; border: 0; border-radius: 10px; background: var(--orange); color: var(--paper); cursor: pointer; width: 100%; }
+button.primary:hover { background: var(--orange-deep); }
+button.ghost { font: inherit; font-weight: 600; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--paper); color: var(--orange-deep); cursor: pointer; }
+button.ghost:hover { border-color: var(--orange); }
+.done { border: 1px solid var(--orange); background: var(--orange-soft); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 6px; }
+.code { font-size: 22px; font-weight: 700; color: var(--orange-deep); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.foot { font-size: 12px; color: var(--ink-muted); display: grid; gap: 4px; }
+.list { display: grid; gap: 8px; }
+.list button { text-align: left; font: inherit; padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.list button:hover { border-color: var(--orange); }
+.placeholder { border: 1px dashed var(--line-strong); border-radius: var(--r); padding: 48px 24px; text-align: center; color: var(--ink-muted); }
+
+/* 화면이 좁을 때만 한 단으로 */
+@media (max-width: 1080px) {
+  .hero { grid-template-columns: 1fr 1fr; }
+  .hero .fare-card { grid-column: 1 / -1; }
+  .grid2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { position: static; }
+  .tagline { display: none; }
+}
+@media (max-width: 560px) {
+  .gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .topbar .container { height: auto; padding-block: 10px; flex-wrap: wrap; gap: 10px; }
+  nav.tabs { width: 100%; }
+  nav.tabs a { flex: 1; text-align: center; padding-inline: 8px; }
+  .hero { grid-template-columns: 1fr; }
+  .fare-card .num { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+<header class="topbar gutter">
+  <div class="container">
+    <div class="brand">
+      <a class="logo" href="#quote"><i aria-hidden="true"></i>잇섬</a>
+      <p class="tagline">덜 찬 화물, 함께 실어 제주까지</p>
+    </div>
+    <nav class="tabs" aria-label="화면">
+      <a href="#quote" data-view="quote">견적 받기</a>
+      <a href="#booking" data-view="booking">내 예약 조회</a>
+      <a href="#pricing" data-view="pricing">요금 안내</a>
+    </nav>
+  </div>
+</header>
+
+<!-- 화면 1: 견적 받기 -->
+<main id="view-quote" class="gutter" data-page="quote">
+  <div class="container">
+    <div class="page-head center">
+      <h1>제주행 공동운송 견적</h1>
+      <p class="lead">화물 정보만 넣으면 운임과 탈 배를 바로 알려 드립니다.</p>
+    </div>
+    <ol class="stepper" id="stepper">
+      <li data-step="1"><button type="button" data-goto="1"><b>1</b><span>화물 정보</span></button></li>
+      <li data-step="2"><button type="button" data-goto="2"><b>2</b><span>운임 확인</span></button></li>
+      <li data-step="3"><button type="button" data-goto="3"><b>3</b><span>계산 근거</span></button></li>
+    </ol>
+    <div class="summary" id="summary" hidden><span id="summary-txt">—</span><button type="button" class="link" data-goto="1">정보 수정</button></div>
+
+    <section class="step" data-step-panel="1">
+        <form id="qform" class="card form-wide" novalidate>
+          <div class="form-cols">
+          <div class="col">
+          <h2>화물</h2>
+          <fieldset class="field">
+            <legend>화물량 입력 방식</legend>
+            <div class="seg" role="radiogroup">
+              <label><input type="radio" name="unit" id="u-roll" value="roll" checked><span>롤테이너</span></label>
+              <label><input type="radio" name="unit" id="u-box" value="box"><span>박스</span></label>
+              <label><input type="radio" name="unit" id="u-m3" value="m3"><span>부피(㎥)</span></label>
+            </div>
+          </fieldset>
+          <div class="unit-row" id="row-roll">
+            <label class="field"><span>롤테이너 수 (0.5칸 단위)</span><input type="number" id="q-rolls" min="0.5" max="36" step="0.5" value="3"></label>
+          </div>
+          <div class="unit-row" id="row-box" hidden>
+            <label class="field"><span>박스 수</span><input type="number" id="q-boxes" min="1" step="1" value="60"></label>
+            <label class="field"><span>박스 크기</span>
+              <select id="q-boxsize">
+                <option value="0.03">소 (0.03㎥)</option>
+                <option value="0.06" selected>중 (0.06㎥)</option>
+                <option value="0.12">대 (0.12㎥)</option>
+              </select>
+            </label>
+          </div>
+          <div class="unit-row" id="row-m3" hidden>
+            <label class="field"><span>부피 (㎥)</span><input type="number" id="q-m3" min="0.1" step="0.1" value="3.6"></label>
+          </div>
+          <p class="convert" id="convert">—</p>
+          <fieldset class="field">
+            <legend>온도</legend>
+            <div class="seg">
+              <label><input type="radio" name="temp" id="t-amb" value="ambient" checked><span>상온</span></label>
+              <label><input type="radio" name="temp" id="t-cold" value="cold"><span>냉장</span></label>
+            </div>
+          </fieldset>
+          </div>
+          <div class="col">
+          <h2>운송 정보</h2>
+          <div class="fields">
+            <label class="field"><span>출발지</span>
+              <select id="q-hub">
+                <option value="수도권">수도권 (5.0시간)</option>
+                <option value="대전">대전 (3.5시간)</option>
+                <option value="광주">광주 (1.0시간)</option>
+                <option value="기타">기타 (직접 입력)</option>
+              </select>
+            </label>
+            <label class="field"><span>목적지</span>
+              <select id="q-dest">
+                <option>제주시</option>
+                <option>서귀포시</option>
+                <option>제주 동부</option>
+                <option>제주 서부</option>
+              </select>
+            </label>
+            <label class="field wide" id="row-hubhours" hidden><span>목포까지 소요 시간 (시간)</span><input type="number" id="q-hubhours" min="0" max="12" step="0.5" value="2"></label>
+            <label class="field"><span>출발 희망일</span><input type="date" id="q-date" min="2025-11-01" max="2026-12-31" value="2026-11-03"></label>
+            <label class="field"><span>출발 시각</span><input type="time" id="q-time" value="10:00"></label>
+          </div>
+          </div>
+          </div>
+          <details class="cfg">
+            <summary>가정값 바꾸기</summary>
+            <div class="fields">
+              <label class="field"><span>롤테이너 1칸 (㎥)</span><input type="number" id="c-roll" min="0.5" max="3" step="0.1" value="1.2"></label>
+              <label class="field"><span>결항 확률 기준값</span><input type="number" id="c-th" min="0.1" max="0.9" step="0.05" value="0.5"></label>
+              <label class="field wide"><span>기사 승선료 (원)</span><input type="number" id="c-driver" min="0" step="1000" value="0"></label>
+            </div>
+          </details>
+        </form>
+        <p class="error" id="q-error" hidden></p>
+        <div class="actions"><span></span><button type="button" class="primary" id="to2" data-goto="2">운임 확인하기 →</button></div>
+    </section>
+
+    <div id="result">
+    <section class="step" data-step-panel="2" hidden>
+          <div class="hero">
+            <div class="card fare-card">
+              <span class="k">내 운임 (잇섬 공동운송)</span>
+              <span class="num" id="r-fare">—</span>
+              <span class="s" id="r-range">—</span>
+            </div>
+            <div class="card save-card">
+              <span class="k">혼자 트럭을 띄울 때보다</span>
+              <span class="num" id="r-save">—</span>
+              <span class="s" id="r-save-pct">—</span>
+            </div>
+            <div class="card">
+              <span class="k">혼자 보낼 때</span>
+              <span class="num" id="r-solo">—</span>
+              <span class="s" id="r-solo-sub">—</span>
+            </div>
+          </div>
+
+            <section class="card" aria-labelledby="h-sched">
+              <div class="card-head">
+                <h3 id="h-sched">내 화물이 탈 배</h3>
+                <span class="badge" id="r-risk">—</span>
+              </div>
+              <p class="notice" id="r-moved" hidden></p>
+              <dl class="kv">
+                <dt>선박</dt><dd id="r-ship">—</dd>
+                <dt>목포항 도착</dt><dd id="r-mokpo">—</dd>
+                <dt>출항</dt><dd id="r-dep">—</dd>
+                <dt>제주항 도착 예정</dt><dd id="r-port">—</dd>
+                <dt>목적지 도착 예정</dt><dd id="r-dest">—</dd>
+              </dl>
+              <p class="notice high" id="r-highnote" hidden></p>
+            </section>
+          <div class="actions"><button type="button" class="ghost" data-goto="1">← 정보 수정</button><div class="row"><button type="button" class="ghost book-btn">이 견적으로 예약하기</button><button type="button" class="primary" data-goto="3">계산 근거 보기 →</button></div></div>
+    </section>
+
+    <section class="step" data-step-panel="3" hidden>
+          <div class="grid2">
+            <div class="stack">
+            <section class="card" aria-labelledby="h-compare">
+              <h3 id="h-compare">보내는 방법 비교</h3>
+              <div class="tablewrap">
+                <table>
+                  <thead><tr><th>방법</th><th>비용</th><th>대기</th><th>목적지 도착</th></tr></thead>
+                  <tbody id="cmp"></tbody>
+                </table>
+              </div>
+              <p class="small muted">차 찰 때까지 대기는 매일 같은 물량을 모아 12칸이 차면 보낸다고 본 경우입니다.</p>
+            </section>
+            <section class="card" aria-labelledby="h-curve">
+              <h3 id="h-curve">물량별 운임</h3>
+              <p class="small muted">같은 날, 같은 배에 실린다고 보고 내 물량만 0.5~12칸으로 바꿔 본 운임입니다.</p>
+              <div class="chart" id="curve"></div>
+              <div class="legend">
+                <span><i style="background: var(--orange);"></i>잇섬 운임</span>
+                <span><i style="background: var(--ink);"></i>혼자 트럭</span>
+              </div>
+            </section>
+            </div>
+
+            <section class="card basis" aria-labelledby="h-basis">
+              <h3 id="h-basis">운임 계산 근거</h3>
+              <div class="truck-fig" id="truck-fig"></div>
+              <div class="legend">
+                <span><i style="background: var(--orange);"></i>내 화물</span>
+                <span><i style="background: var(--others);"></i>함께 실리는 다른 고객 (예상)</span>
+                <span><i style="background: var(--paper); border: 1px solid var(--line-strong);"></i>빈 칸</span>
+              </div>
+              <ol class="steps" id="steps"></ol>
+            </section>
+          </div>
+          <div class="actions"><button type="button" class="ghost" data-goto="2">← 운임 확인</button><button type="button" class="primary book-btn">이 견적으로 예약하기</button></div>
+    </section>
+
+    <div class="done" id="booked" hidden>
+      <span class="k">예약 번호</span>
+      <span class="code" id="booked-id">—</span>
+      <span class="small muted">내 예약 조회 화면에서 배편과 도착 예정을 확인할 수 있습니다. 예약은 이 브라우저에만 저장되는 시연용입니다.</span>
+      <div class="row"><button type="button" class="ghost" id="go-booking">내 예약 조회로 가기</button></div>
+    </div>
+    <div class="foot">
+      <span id="data-note">—</span>
+      <span>결항 확률은 가상 기상 데이터 기반 예시이며, 실제 운항 정보는 선사 공지를 확인하세요.</span>
+    </div>
+    </div>
+  </div>
+</main>
+
+<!-- 화면 2: 내 예약 조회 -->
+<main id="view-booking" class="gutter" data-page="booking" hidden>
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>내 예약 조회</h1>
+        <p class="lead">예약 번호로 배편, 결항 위험, 도착 예정을 확인합니다.</p>
+      </div>
+    </div>
+    <div class="layout">
+      <aside class="side">
+        <form id="bform" class="card" novalidate>
+          <label class="field"><span>예약 번호</span><input type="text" id="b-id" placeholder="예: IS261103-K7Q2" autocomplete="off"></label>
+          <button type="submit" class="primary">조회하기</button>
+        </form>
+        <p class="error" id="b-error" hidden></p>
+        <section class="card">
+          <h3>이 브라우저의 예약</h3>
+          <div class="list" id="b-list"></div>
+          <p class="small muted" id="b-empty">아직 예약이 없습니다. 견적 받기 화면에서 "이 견적으로 예약하기"를 누르면 여기에 나타납니다.</p>
+        </section>
+      </aside>
+      <div class="results">
+        <div class="placeholder" id="b-placeholder">예약 번호를 입력하거나 왼쪽 목록에서 예약을 고르세요.</div>
+        <section class="card" id="b-result" hidden>
+          <div class="card-head">
+            <h2>예약 <span id="b-code">—</span></h2>
+            <span class="badge" id="b-risk">—</span>
+          </div>
+          <p class="notice" id="b-change" hidden></p>
+          <dl class="kv">
+            <dt>화물량</dt><dd id="b-qty">—</dd>
+            <dt>운임</dt><dd id="b-fare">—</dd>
+            <dt>선박</dt><dd id="b-ship">—</dd>
+            <dt>출항</dt><dd id="b-dep">—</dd>
+            <dt>제주항 도착 예정</dt><dd id="b-port">—</dd>
+            <dt>목적지 도착 예정</dt><dd id="b-dest">—</dd>
+          </dl>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 화면 3: 요금 안내 -->
+<main id="view-pricing" class="gutter" data-page="pricing" hidden>
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>운임은 트럭에서 차지한 만큼만</h1>
+        <p class="lead" style="max-width: 80ch;">제주행 화물은 트럭째 카페리에 실려 바다를 건넙니다. 잇섬은 여러 고객의 화물을 목포항 근처 합적 지점에 모아 한 트럭에 함께 싣고, 트럭 한 대의 도선료를 각자 차지한 칸 수(부피) 비율대로 나눕니다.</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <section class="card">
+        <h3>예시: A 6칸, B 3칸, 나 3칸이 한 트럭에 실리면</h3>
+        <div class="truck-fig" id="ex-truck"></div>
+        <div class="legend">
+          <span><i style="background: #8D6E63;"></i>A 6칸</span>
+          <span><i style="background: var(--others);"></i>B 3칸</span>
+          <span><i style="background: var(--orange);"></i>나 3칸</span>
+        </div>
+        <p>평일 도선료 364,380원을 6 : 3 : 3으로 나눕니다. 나는 <b id="ex-share">—</b>에 하역비 <b>9,000원</b>(3칸 × 3,000원)을 더해 <b id="ex-total" style="color: var(--orange-deep);">—</b>을 냅니다.</p>
+        <hr class="divider">
+        <h3>혼자 보낼 때보다 더 내지 않습니다</h3>
+        <p>함께 실릴 화물이 적어 트럭이 덜 차면 칸당 비용이 올라갑니다. 그래도 내 운임이 혼자 트럭을 띄울 때 비용을 넘으면, 혼자 보낼 때 비용까지만 받습니다.</p>
+      </section>
+      <section class="card">
+        <h3>계산 확인 예시</h3>
+        <p class="small muted">평일, 상온 3칸, 수도권 10:00 출발, 같은 배편 다른 고객 잔량 6칸 → 트럭 9칸 적재</p>
+        <ol class="steps" id="ex-steps"></ol>
+      </section>
+      <section class="card span2">
+        <h3>가정값과 출처</h3>
+        <div class="tablewrap">
+          <table class="wrap">
+            <thead><tr><th>항목</th><th>값</th><th>구분</th></tr></thead>
+            <tbody>
+              <tr><td>도선료 (목포→제주, 4.5톤 단축 적재, 월~토)</td><td>364,380원</td><td>실제 · 씨월드 (팀 확인)</td></tr>
+              <tr><td>도선료 (일·공휴일)</td><td>406,410원</td><td>실제 · 씨월드 (팀 확인)</td></tr>
+              <tr><td>배편 출항 시각</td><td>퀸제누비아2호 01:00, 퀸메리2호 08:30</td><td>실제 · 씨월드 홈페이지</td></tr>
+              <tr><td>제주항 도착 시각</td><td>01:00편 06:00, 08:30편 13:00</td><td>가정</td></tr>
+              <tr><td>화물 마감 시각</td><td>출항 2시간 전</td><td>가정 (선사 확인 필요)</td></tr>
+              <tr><td>롤테이너 1칸 부피</td><td>1.2㎥</td><td>가정</td></tr>
+              <tr><td>트럭 1대</td><td>롤테이너 12칸</td><td>가정</td></tr>
+              <tr><td>하역비</td><td>칸당 3,000원</td><td>가정</td></tr>
+              <tr><td>최소 과금 단위</td><td>0.25칸</td><td>가정</td></tr>
+              <tr><td>합적 작업 / 하역·인계</td><td>1시간 / 2시간</td><td>가정</td></tr>
+              <tr><td>목포까지 육로 시간</td><td>수도권 5.0, 대전 3.5, 광주 1.0시간</td><td>대략값</td></tr>
+              <tr><td>제주항→목적지</td><td>제주시 0.5, 서귀포시 1.2, 동부·서부 1.0시간</td><td>가정</td></tr>
+              <tr><td>다른 고객 물량, 파고·풍속, 결항 확률</td><td>시연용</td><td>가상 데이터</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  // ---- 데이터 (real: 도선료·배편·공휴일 / synthetic: 다른 고객 물량·기상) ----
+  const FARE = { weekday: 364380, holiday: 406410 };
+  const SLOTS = 12, HANDLING = 3000, MIN_UNIT = 0.25, MERGE_H = 1, HANDOVER_H = 2;
+  const HUB_HOURS = { '수도권': 5.0, '대전': 3.5, '광주': 1.0 };
+  const DEST_HOURS = { '제주시': 0.5, '서귀포시': 1.2, '제주 동부': 1.0, '제주 서부': 1.0 };
+  const SAILINGS = [
+    { id: 'night', ship: '퀸제누비아2호', dep: 60, arr: 360, label: '야간' },
+    { id: 'morning', ship: '퀸메리2호', dep: 510, arr: 780, label: '오전' },
+  ];
+  const CUTOFF_BEFORE = 120;
+  const HOLIDAYS = {
+    '2025-12-25': '성탄절', '2026-01-01': '신정', '2026-02-16': '설날 연휴', '2026-02-17': '설날', '2026-02-18': '설날 연휴',
+    '2026-03-01': '삼일절', '2026-03-02': '대체공휴일', '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '대체공휴일',
+    '2026-06-03': '지방선거', '2026-06-06': '현충일', '2026-08-15': '광복절', '2026-08-17': '대체공휴일',
+    '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴', '2026-10-03': '개천절', '2026-10-05': '대체공휴일',
+    '2026-10-09': '한글날', '2026-12-25': '성탄절',
+  };
+  // 가상: 다른 고객 물량 [냉장 마감전, 냉장 마감후, 상온 마감전, 상온 마감후] × 5개사
+  const SHIP = {"2026-10-04":[[2,0,6,2],[1,1,3,0],[1,0,1,2],[0,1,1,0],[0,1,0,0]],"2026-10-05":[[3,1,7,6],[1,1,5,0],[0,0,1,0],[3,1,2,0],[0,1,0,0]],"2026-10-06":[[6,3,7,5],[5,2,4,3],[0,0,4,4],[2,1,2,1],[1,0,1,0]],"2026-10-07":[[3,3,11,8],[3,1,8,5],[2,1,5,0],[0,3,0,1],[0,0,0,0]],"2026-10-08":[[1,2,15,11],[3,2,8,3],[1,0,2,1],[2,3,1,1],[0,0,0,0]],"2026-10-09":[[4,1,5,6],[3,0,4,2],[0,0,2,2],[0,0,0,0],[0,1,0,0]],"2026-10-10":[[5,2,8,6],[0,1,2,5],[0,0,2,2],[0,1,2,0],[2,0,0,0]],"2026-10-11":[[3,3,6,4],[2,0,1,1],[0,0,1,0],[0,0,1,0],[0,0,1,0]],"2026-10-12":[[9,5,17,9],[2,5,6,3],[0,1,5,1],[2,0,1,1],[0,0,2,1]],"2026-10-13":[[7,7,10,9],[2,3,6,2],[1,0,5,2],[1,1,3,2],[2,0,1,0]],"2026-10-14":[[8,3,11,10],[0,1,4,2],[1,2,5,1],[1,2,1,0],[1,0,0,0]],"2026-10-15":[[6,4,11,8],[3,1,8,4],[0,0,1,0],[2,1,0,1],[0,0,1,2]],"2026-10-16":[[6,4,13,7],[0,1,2,5],[0,1,4,3],[0,2,2,1],[1,1,2,1]],"2026-10-17":[[6,2,6,3],[2,0,7,4],[0,1,2,0],[0,0,0,0],[0,0,1,0]],"2026-10-18":[[3,4,3,2],[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,0]],"2026-10-19":[[6,3,16,6],[0,1,6,4],[2,0,0,3],[2,0,0,0],[0,1,2,0]],"2026-10-20":[[4,6,10,7],[7,2,8,3],[1,2,2,1],[1,0,1,1],[0,0,0,0]],"2026-10-21":[[6,5,6,5],[2,0,10,2],[1,0,4,5],[2,0,3,0],[0,1,2,0]],"2026-10-22":[[9,2,10,7],[2,2,3,6],[1,0,5,1],[1,1,1,0],[0,0,0,0]],"2026-10-23":[[3,1,12,10],[3,1,9,6],[0,0,3,0],[2,0,1,0],[1,0,0,0]],"2026-10-24":[[5,1,5,11],[1,0,9,3],[0,1,3,2],[0,0,2,0],[0,0,0,0]],"2026-10-25":[[3,0,6,2],[1,1,2,1],[0,1,0,0],[0,0,1,0],[0,0,0,0]],"2026-10-26":[[4,5,9,8],[2,1,3,6],[1,0,9,1],[0,1,0,0],[0,0,1,0]],"2026-10-27":[[4,5,12,7],[0,3,5,3],[1,1,4,3],[2,0,1,1],[1,2,0,0]],"2026-10-28":[[5,4,14,10],[1,0,8,3],[0,0,4,0],[0,2,0,0],[0,0,0,1]],"2026-10-29":[[3,6,14,9],[3,0,6,3],[1,0,2,3],[4,1,1,1],[0,0,1,1]],"2026-10-30":[[5,2,15,7],[0,1,7,5],[0,1,1,0],[0,0,1,1],[0,0,0,1]],"2026-10-31":[[3,1,7,5],[0,0,5,2],[0,0,4,5],[0,3,1,0],[1,0,0,1]]};
+  // 가상: 일별 파고(m)·풍속(m/s). night = 그날 밤 출항(익일 01:00)편
+  const WX = {"2026-10-04":{"morning":[1.9,6,0.042],"night":[2.5,7.2,0.161]},"2026-10-05":{"morning":[2.1,9,0.102],"night":[1.8,10.6,0.075]},"2026-10-06":{"morning":[0.5,11,0.006],"night":[0.4,11.4,0.005]},"2026-10-07":{"morning":[0.4,10,0.004],"night":[0.1,10.6,0.002]},"2026-10-08":{"morning":[2,7,0.061],"night":[2.6,6.9,0.183]},"2026-10-09":{"morning":[1.6,6,0.023],"night":[2.1,5.8,0.06]},"2026-10-10":{"morning":[2.4,6,0.111],"night":[2.6,4.9,0.135]},"2026-10-11":{"morning":[2,10,0.1],"night":[1.8,11.0,0.08]},"2026-10-12":{"morning":[1.4,8,0.021],"night":[1.1,9.0,0.014]},"2026-10-13":{"morning":[2.3,9,0.148],"night":[2.7,9.3,0.298]},"2026-10-14":{"morning":[0.8,6,0.004],"night":[0.7,6.8,0.004]},"2026-10-15":{"morning":[2.3,5,0.078],"night":[1.8,5.6,0.032]},"2026-10-16":{"morning":[1.6,7,0.027],"night":[2.4,8.0,0.152]},"2026-10-17":{"morning":[3.6,14.8,0.883],"night":[3.7,16.4,0.926]},"2026-10-18":{"morning":[2.1,8,0.087],"night":[2,7.9,0.071]},"2026-10-19":{"morning":[2.4,4,0.08],"night":[3,5.1,0.272]},"2026-10-20":{"morning":[0.3,5,0.001],"night":[0.8,4.1,0.003]},"2026-10-21":{"morning":[1.8,6,0.034],"night":[1.5,6.1,0.019]},"2026-10-22":{"morning":[0.8,11,0.011],"night":[0.9,9.1,0.009]},"2026-10-23":{"morning":[1.1,11,0.02],"night":[1.1,12.2,0.024]},"2026-10-24":{"morning":[1,9,0.011],"night":[1.5,9.8,0.036]},"2026-10-25":{"morning":[1.4,3,0.009],"night":[2.1,1.7,0.03]},"2026-10-26":{"morning":[2.1,7,0.074],"night":[2.4,9.0,0.177]},"2026-10-27":{"morning":[1.8,5,0.029],"night":[2.5,4.9,0.112]},"2026-10-28":{"morning":[0.3,6,0.002],"night":[0.7,6.0,0.004]},"2026-10-29":{"morning":[1.8,8,0.048],"night":[1.5,9.5,0.034]},"2026-10-30":{"morning":[1.5,6,0.019],"night":[2.1,7.6,0.082]},"2026-10-31":{"morning":[2.1,9,0.102],"night":[2.9,15.6,0.668]}};
+  // 가상: 데이터 범위 밖 날짜에 쓰는 월평균 [파고, 풍속]
+  const MONTH_WX = { 1: [2.3, 10.5], 2: [2.1, 10.0], 3: [1.7, 8.5], 4: [1.3, 7.0], 5: [1.1, 6.5], 6: [1.2, 6.5], 7: [1.5, 7.5], 8: [1.7, 8.0], 9: [1.6, 8.0], 10: [1.3, 7.0], 11: [1.7, 8.5], 12: [2.0, 9.5] };
+  const SAMPLE_START = '2026-10-04', SAMPLE_DAYS = 28;
+
+  // ---- 시간 (분 단위, KST를 UTC 필드로 다룸) ----
+  const DAY = 1440;
+  const parseDay = (s) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 60000;
+  const keyOf = (t) => new Date(Math.floor(t / DAY) * DAY * 60000).toISOString().slice(0, 10);
+  const WD = '일월화수목금토';
+  const fmtDate = (t) => { const d = new Date(t * 60000); return (d.getUTCMonth() + 1) + '월 ' + d.getUTCDate() + '일 (' + WD[d.getUTCDay()] + ')'; };
+  const fmtTime = (t) => { const d = new Date(t * 60000); return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0'); };
+  const fmtDT = (t) => fmtDate(t) + ' ' + fmtTime(t);
+  const won = (x) => Math.round(x).toLocaleString('ko-KR') + '원';
+  const num = (x, d = 0) => Number(x).toLocaleString('ko-KR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pct = (x) => (Math.round(x * 1000) / 10).toFixed(1) + '%';
+  const slotsTxt = (x) => String(Math.round(x * 100) / 100) + '칸';
+
+  const isHoliday = (key) => new Date(parseDay(key) * 60000).getUTCDay() === 0 || !!HOLIDAYS[key];
+  const truckCost = (depT, driver) => (isHoliday(keyOf(depT)) ? FARE.holiday : FARE.weekday) + driver;
+
+  // ---- 결항 확률 (가상 기상 기반 예시 식) ----
+  const logistic = (w, v) => 1 / (1 + Math.exp(-(-8.2 + 2.1 * w + 0.18 * v)));
+  const wxFor = (s) => {
+    // 01:00편은 전날 밤 기상 행, 08:30편은 그날 기상 행
+    const wxDay = s.id === 'night' ? s.dep - DAY : s.dep;
+    const key = keyOf(wxDay);
+    const row = WX[key];
+    if (row) { const [w, v, p] = row[s.id]; return { w, v, p, sample: true }; }
+    const [w0, v0] = MONTH_WX[new Date(wxDay * 60000).getUTCMonth() + 1];
+    const w = s.id === 'night' ? w0 + 0.2 : w0, v = s.id === 'night' ? v0 + 0.6 : v0;
+    return { w, v, p: logistic(w, v), sample: false };
+  };
+  const riskLevel = (p) => (p < 0.2 ? { cls: 'low', txt: '결항 위험 낮음' } : p <= 0.5 ? { cls: 'mid', txt: '결항 위험 주의' } : { cls: 'high', txt: '결항 위험 높음' });
+
+  // ---- 함께 실리는 다른 고객 잔량 ----
+  const othersFor = (s, temp) => {
+    // 08:30편은 그날 마감 전 도착분, 01:00편은 전날 마감 후 도착분
+    const opDay = s.id === 'night' ? s.dep - DAY : s.dep;
+    let key = keyOf(opDay), mapped = false;
+    if (!SHIP[key]) {
+      const base = parseDay(SAMPLE_START);
+      const idx = (((Math.floor(opDay / DAY) - base / DAY) % SAMPLE_DAYS) + SAMPLE_DAYS) % SAMPLE_DAYS;
+      key = keyOf(base + idx * DAY); mapped = true;
+    }
+    const col = (temp === 'cold' ? 0 : 2) + (s.id === 'night' ? 1 : 0);
+    return { slots: SHIP[key].reduce((a, r) => a + (r[col] % SLOTS), 0), key, mapped };
+  };
+
+  // ---- 배편 ----
+  const sailingsAfter = (t) => {
+    const out = [], d0 = Math.floor(t / DAY) * DAY;
+    for (let k = -1; k <= 6; k++) for (const s of SAILINGS) {
+      const dep = d0 + k * DAY + s.dep;
+      out.push({ ...s, dep, arr: d0 + k * DAY + s.arr, cutoff: dep - CUTOFF_BEFORE });
+    }
+    return out.sort((a, b) => a.dep - b.dep).filter((s) => s.cutoff >= t);
+  };
+  const schedule = (departT, hubH, destH, th) => {
+    const mokpo = departT + Math.round((hubH + MERGE_H) * 60);
+    const list = sailingsAfter(mokpo);
+    let i = 0, moved = null;
+    const first = list[0], firstWx = wxFor(first);
+    if (firstWx.p > th) { moved = { from: first, p: firstWx.p }; i = 1; }
+    const s = list[i], wx = wxFor(s), next = list[i + 1];
+    const destArr = (x) => x.arr + Math.round((HANDOVER_H + destH) * 60);
+    return { mokpo, s, wx, moved, port: s.arr, dest: destArr(s), next, nextDest: destArr(next) };
+  };
+
+  // ---- 운임 ----
+  const share = (mine, others, cost) => {
+    const total = others + mine, trucks = Math.ceil(total / SLOTS);
+    const raw = trucks * cost * mine / total + HANDLING * mine;
+    const solo = Math.ceil(mine / SLOTS) * cost;
+    return { total, trucks, raw, solo, fare: Math.min(raw, solo), capped: raw > solo };
+  };
+  const fareAtLoad = (mine, load, trucks, cost) => Math.min(trucks * cost * mine / load + HANDLING * mine, Math.ceil(mine / SLOTS) * cost);
+
+  // ---- 입력 ----
+  const $ = (id) => document.getElementById(id);
+  const val = (name) => document.querySelector('input[name="' + name + '"]:checked').value;
+  const readInputs = () => ({
+    unit: val('unit'), rolls: +$('q-rolls').value, boxes: +$('q-boxes').value, boxSize: +$('q-boxsize').value, m3: +$('q-m3').value,
+    temp: val('temp'), hub: $('q-hub').value, hubHours: +$('q-hubhours').value, dest: $('q-dest').value,
+    date: $('q-date').value, time: $('q-time').value, rollM3: +$('c-roll').value || 1.2, driver: +$('c-driver').value || 0, th: +$('c-th').value || 0.5,
+  });
+  const writeInputs = (q) => {
+    document.querySelector('input[name="unit"][value="' + q.unit + '"]').checked = true;
+    document.querySelector('input[name="temp"][value="' + q.temp + '"]').checked = true;
+    $('q-rolls').value = q.rolls; $('q-boxes').value = q.boxes; $('q-boxsize').value = String(q.boxSize); $('q-m3').value = q.m3;
+    $('q-hub').value = q.hub; $('q-hubhours').value = q.hubHours; $('q-dest').value = q.dest; $('q-date').value = q.date; $('q-time').value = q.time;
+    $('c-roll').value = q.rollM3; $('c-driver').value = q.driver; $('c-th').value = q.th;
+  };
+
+  const quote = (q) => {
+    let raw;
+    if (q.unit === 'roll') raw = q.rolls;
+    else if (q.unit === 'box') raw = q.boxes * q.boxSize / q.rollM3;
+    else raw = q.m3 / q.rollM3;
+    if (!(raw > 0)) return { error: '화물량을 0보다 크게 입력해 주세요.' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date) || q.date < '2025-11-01' || q.date > '2026-12-31') return { error: '출발 희망일은 2025년 11월 1일부터 2026년 12월 31일 사이로 골라 주세요.' };
+    if (!/^\d{2}:\d{2}$/.test(q.time)) return { error: '출발 시각을 입력해 주세요.' };
+    const mine = Math.max(MIN_UNIT, Math.ceil(raw / MIN_UNIT - 1e-9) * MIN_UNIT);
+    const hubH = q.hub === '기타' ? q.hubHours : HUB_HOURS[q.hub];
+    if (!(hubH >= 0)) return { error: '목포까지 소요 시간을 입력해 주세요.' };
+    const departT = parseDay(q.date) + (+q.time.slice(0, 2)) * 60 + (+q.time.slice(3, 5));
+    const destH = DEST_HOURS[q.dest];
+    const sch = schedule(departT, hubH, destH, q.th);
+    const cost = truckCost(sch.s.dep, q.driver);
+    const oth = othersFor(sch.s, q.temp);
+    const sh = share(mine, oth.slots, cost);
+    const load = sh.total / (sh.trucks * SLOTS);
+    const lowLoad = Math.max(mine / (sh.trucks * SLOTS), load - 0.2) * sh.trucks * SLOTS;
+    const range = { low: fareAtLoad(mine, lowLoad, sh.trucks, cost), full: fareAtLoad(mine, sh.trucks * SLOTS, sh.trucks, cost) };
+    // 혼자: 바로 출발 / 차 찰 때까지 대기
+    const waitDays = mine >= SLOTS ? 0 : Math.ceil(SLOTS / mine) - 1;
+    const waitSch = schedule(departT + waitDays * DAY, hubH, destH, q.th);
+    const waitCost = mine >= SLOTS ? Math.ceil(mine / SLOTS) * truckCost(waitSch.s.dep, q.driver) : truckCost(waitSch.s.dep, q.driver) * mine / SLOTS;
+    const curve = [];
+    for (let m = 0.5; m <= 12.0001; m += 0.5) curve.push({ m, its: share(m, oth.slots, cost).fare, solo: Math.ceil(m / SLOTS) * cost });
+    return { q, raw, mine, hubH, departT, sch, cost, oth, sh, load, range, waitDays, waitSch, waitCost, curve };
+  };
+
+  // ---- 트럭 그림 (2열 × 6칸, 오른쪽이 운전석) ----
+  const truckSvg = (segments, opts = {}) => {
+    // segments: [{n, color}] 앞칸부터 채움, 합계 ≤ 12
+    const W = 420, H = 150, bx = 8, by = 16, bw = 300, bh = 100, cols = 6, rows = 2, gap = 4;
+    const cw = (bw - gap * (cols + 1)) / cols, ch = (bh - gap * (rows + 1)) / rows;
+    let cells = '';
+    for (let i = 0; i < SLOTS; i++) {
+      const c = Math.floor(i / rows), r = i % rows;
+      const x = bx + gap + c * (cw + gap), y = by + gap + r * (ch + gap);
+      cells += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="4" fill="var(--paper)" stroke="var(--line-strong)"/>`;
+      // 이 칸 [i, i+1) 안에 들어가는 구간 칠하기
+      let at = 0;
+      for (const sg of segments) {
+        const s0 = Math.max(at, i), s1 = Math.min(at + sg.n, i + 1);
+        if (s1 > s0) cells += `<rect x="${x + (s0 - i) * cw}" y="${y}" width="${(s1 - s0) * cw}" height="${ch}" rx="${s1 - s0 === 1 ? 4 : 2}" fill="${sg.color}"/>`;
+        at += sg.n;
+      }
+    }
+    const label = opts.label ? `<text x="${bx}" y="11" font-size="12" fill="var(--ink-muted)" font-family="inherit">${opts.label}</text>` : '';
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="${opts.aria || '트럭 적재 그림'}">
+      ${label}
+      <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="8" fill="var(--subtle)" stroke="var(--ink)" stroke-width="1.5"/>
+      ${cells}
+      <path d="M${bx + bw + 6} ${by + 30} h52 l30 34 v36 h-82 z" fill="var(--orange)" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="${bx + bw + 16}" y="${by + 38}" width="34" height="20" rx="3" fill="var(--paper)"/>
+      <circle cx="${bx + 60}" cy="${by + bh + 14}" r="12" fill="var(--ink)"/><circle cx="${bx + 230}" cy="${by + bh + 14}" r="12" fill="var(--ink)"/><circle cx="${bx + bw + 50}" cy="${by + bh + 14}" r="12" fill="var(--ink)"/>
+      <circle cx="${bx + 60}" cy="${by + bh + 14}" r="4" fill="var(--paper)"/><circle cx="${bx + 230}" cy="${by + bh + 14}" r="4" fill="var(--paper)"/><circle cx="${bx + bw + 50}" cy="${by + bh + 14}" r="4" fill="var(--paper)"/>
+    </svg>`;
+  };
+
+  // ---- 그래프 ----
+  const drawCurve = (r) => {
+    const el = $('curve');
+    const W = Math.max(280, el.clientWidth || 600), H = 230, m = { t: 12, r: 12, b: 34, l: 0 };
+    const yMax = Math.max(...r.curve.map((d) => Math.max(d.its, d.solo))) * 1.08;
+    const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(yMax * f / 10000) * 10000);
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = '12px "IBM Plex Sans KR", sans-serif';
+    m.l = Math.max(...ticks.map((v) => ctx.measureText(num(v / 10000) + '만').width)) + 10;
+    const x = (v) => m.l + (v - 0.5) / 11.5 * (W - m.l - m.r);
+    const y = (v) => H - m.b - v / yMax * (H - m.t - m.b);
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="display:block;font-family:inherit;font-size:12px">`;
+    for (const v of ticks) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v ? 'var(--line)' : 'var(--line-strong)'}"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end" fill="var(--ink-muted)">${num(v / 10000)}만</text>`;
+    for (const v of [0.5, 3, 6, 9, 12]) s += `<text x="${x(v)}" y="${H - m.b + 18}" text-anchor="${v === 12 ? 'end' : v === 0.5 ? 'start' : 'middle'}" fill="var(--ink-muted)">${v}칸</text>`;
+    const path = (k) => r.curve.map((d, i) => (i ? 'L' : 'M') + x(d.m).toFixed(1) + ' ' + y(d[k]).toFixed(1)).join(' ');
+    const area = path('its') + ` L${x(12)} ${y(0)} L${x(0.5)} ${y(0)} Z`;
+    s += `<path d="${area}" fill="var(--orange)" fill-opacity=".10"/>`;
+    s += `<path d="${path('solo')}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>`;
+    s += `<path d="${path('its')}" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const cm = Math.min(12, Math.max(0.5, r.mine));
+    const ci = share(cm, r.oth.slots, r.cost).fare;
+    s += `<line x1="${x(cm)}" x2="${x(cm)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--orange-deep)" stroke-dasharray="3 3"/>`;
+    s += `<circle cx="${x(cm)}" cy="${y(ci)}" r="5" fill="var(--orange-deep)" stroke="var(--paper)" stroke-width="2"/>`;
+    s += `<rect class="hit" x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent"/></svg>`;
+    el.innerHTML = s + '<div class="tip" hidden></div>';
+    const tip = el.querySelector('.tip'), svg = el.querySelector('svg');
+    svg.addEventListener('mousemove', (ev) => {
+      const b = svg.getBoundingClientRect(), px = (ev.clientX - b.left) * W / b.width;
+      const mm = Math.min(12, Math.max(0.5, Math.round(((px - m.l) / (W - m.l - m.r) * 11.5 + 0.5) * 2) / 2));
+      const d = r.curve.find((c) => Math.abs(c.m - mm) < 1e-6);
+      if (!d) return;
+      tip.innerHTML = `<div class="muted">${d.m}칸</div><div>잇섬 ${won(d.its)}</div><div>혼자 ${won(d.solo)}</div>`;
+      tip.hidden = false;
+      let lx = ev.clientX - b.left + 12; if (lx + tip.offsetWidth > b.width) lx = ev.clientX - b.left - tip.offsetWidth - 12;
+      tip.style.left = Math.max(0, lx) + 'px'; tip.style.top = '8px';
+    });
+    svg.addEventListener('mouseleave', () => { tip.hidden = true; });
+  };
+
+  // ---- 단계 (1 화물 정보 → 2 운임 확인 → 3 계산 근거) ----
+  let current = null, step = 1;
+  const paintStepper = () => {
+    document.querySelectorAll('#stepper li').forEach((li) => {
+      const k = +li.dataset.step;
+      li.className = k === step ? 'on' : k < step ? 'past' : '';
+      li.querySelector('button').disabled = k > 1 && !current;
+      if (k === step) li.querySelector('button').setAttribute('aria-current', 'step'); else li.querySelector('button').removeAttribute('aria-current');
+    });
+  };
+  const goStep = (n) => {
+    if (n > 1 && !current) return;
+    step = n;
+    document.querySelectorAll('[data-step-panel]').forEach((el) => { el.hidden = +el.dataset.stepPanel !== n; });
+    $('summary').hidden = n === 1;
+    paintStepper();
+    if (n === 3 && current) drawCurve(current);
+    window.scrollTo(0, 0);
+  };
+  document.addEventListener('click', (e) => { const g = e.target.closest('[data-goto]'); if (g && !g.disabled) goStep(+g.dataset.goto); });
+
+  // ---- 결과 그리기 ----
+  const render = () => {
+    const q = readInputs();
+    $('row-roll').hidden = q.unit !== 'roll'; $('row-box').hidden = q.unit !== 'box'; $('row-m3').hidden = q.unit !== 'm3';
+    $('row-hubhours').hidden = q.hub !== '기타';
+    const r = quote(q);
+    $('q-error').hidden = !r.error; $('result').hidden = !!r.error; $('to2').disabled = !!r.error;
+    if (r.error) { $('q-error').textContent = r.error; $('convert').textContent = '—'; current = null; if (step > 1) goStep(1); else paintStepper(); return; }
+    current = r;
+    paintStepper();
+    $('booked').hidden = true;
+    $('summary-txt').textContent = `${q.temp === 'cold' ? '냉장' : '상온'} ${slotsTxt(r.mine)} · ${q.hub} → ${q.dest} · ${fmtDate(r.departT)} ${q.time} 출발`;
+    const m3 = r.mine * q.rollM3;
+    $('convert').innerHTML = q.unit === 'roll'
+      ? `과금 칸 수 <b>${slotsTxt(r.mine)}</b> (약 ${num(m3, 1)}㎥, 1칸 = ${num(q.rollM3, 1)}㎥)`
+      : `약 ${num(r.raw, 2)}칸으로 환산 → 과금 칸 수 <b>${slotsTxt(r.mine)}</b> (0.25칸 단위 올림)`;
+
+    const save = r.sh.solo - r.sh.fare;
+    $('r-fare').textContent = won(r.sh.fare);
+    $('r-range').textContent = '트럭이 덜 차면 ' + won(r.range.low) + ', 꽉 차면 ' + won(r.range.full);
+    $('r-save').textContent = won(save) + ' 절감';
+    $('r-save-pct').textContent = pct(save / r.sh.solo) + ' 적게 냅니다';
+    $('r-solo').textContent = won(r.sh.solo);
+    $('r-solo-sub').textContent = '트럭 ' + Math.ceil(r.mine / SLOTS) + '대를 혼자 띄울 때 도선료';
+
+    const lv = riskLevel(r.sch.wx.p);
+    $('r-risk').className = 'badge ' + lv.cls; $('r-risk').textContent = lv.txt + ' ' + pct(r.sch.wx.p);
+    $('r-ship').textContent = r.sch.s.ship + ' (' + r.sch.s.label + ' 배편, ' + (q.temp === 'cold' ? '냉장' : '상온') + ' 합적 트럭)';
+    $('r-mokpo').textContent = fmtDT(r.sch.mokpo) + ' · 화물 마감 ' + fmtTime(r.sch.s.cutoff);
+    $('r-dep').textContent = fmtDT(r.sch.s.dep) + ' 목포항';
+    $('r-port').textContent = fmtDT(r.sch.port);
+    $('r-dest').textContent = fmtDT(r.sch.dest) + ' ' + q.dest;
+    $('r-moved').hidden = !r.sch.moved;
+    if (r.sch.moved) $('r-moved').textContent = `${fmtDT(r.sch.moved.from.dep)} ${r.sch.moved.from.ship}의 결항 확률이 ${pct(r.sch.moved.p)}로 기준값 ${pct(q.th)}를 넘어, 다음 배편으로 미리 옮겼습니다.`;
+    $('r-highnote').hidden = lv.cls !== 'high';
+    if (lv.cls === 'high') $('r-highnote').textContent = `이 배편도 결항되면 다음 배편 ${r.sch.next.ship} ${fmtDT(r.sch.next.dep)} 출항, 목적지 도착 ${fmtDT(r.sch.nextDest)} 예정입니다.`;
+
+    // 트럭 그림
+    let figs = '', othLeft = r.oth.slots, mineLeft = r.mine;
+    for (let k = 0; k < r.sh.trucks; k++) {
+      const o = Math.min(SLOTS, othLeft); othLeft -= o;
+      const mm = Math.min(SLOTS - o, mineLeft); mineLeft -= mm;
+      figs += truckSvg([{ n: o, color: 'var(--others)' }, { n: mm, color: 'var(--orange)' }], { label: r.sh.trucks > 1 ? `트럭 ${k + 1}` : '', aria: `트럭 12칸 중 다른 고객 ${o}칸, 내 화물 ${mm}칸` });
+    }
+    $('truck-fig').innerHTML = figs;
+
+    const fareName = isHoliday(keyOf(r.sch.s.dep)) ? '일·공휴일' : '월~토';
+    const stepsHtml = [
+      ['트럭 1회 비용', won(r.cost), `목포→제주 4.5톤 단축 적재 ${fareName} 도선료 ${won(r.cost - q.driver)}${q.driver ? ' + 기사 승선료 ' + won(q.driver) : ''}`],
+      ['트럭 예상 적재', `${slotsTxt(r.sh.total)} / ${r.sh.trucks * SLOTS}칸`, `같은 배편 ${q.temp === 'cold' ? '냉장' : '상온'} 다른 고객 잔량 ${slotsTxt(r.oth.slots)} + 내 화물 ${slotsTxt(r.mine)} · 적재율 ${pct(r.load)}${r.sh.trucks > 1 ? ` · 12칸을 넘어 트럭 ${r.sh.trucks}대 사용` : ''}`],
+      ['내 부피 비율', pct(r.mine / r.sh.total), `${slotsTxt(r.sh.total)} 중 ${slotsTxt(r.mine)}`],
+      ['도선료 분담', won(r.sh.trucks * r.cost * r.mine / r.sh.total), `${won(r.sh.trucks * r.cost)} × ${pct(r.mine / r.sh.total)}`],
+      ['하역비', won(HANDLING * r.mine), `칸당 3,000원 × ${slotsTxt(r.mine)}`],
+    ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('');
+    const capNote = r.sh.capped ? `<span class="d">계산값 ${won(r.sh.raw)}이 혼자 보낼 때 비용 ${won(r.sh.solo)}을 넘어 상한까지 깎았습니다.</span>` : '';
+    $('steps').innerHTML = stepsHtml + `<li class="total"><span>내 운임</span><span class="v">${won(r.sh.fare)}</span>${capNote}</li>`;
+
+    const waitTxt = r.waitDays ? `약 ${r.waitDays}일` : '없음';
+    $('cmp').innerHTML = [
+      ['잇섬 공동운송', won(r.sh.fare), '없음', fmtDT(r.sch.dest), true],
+      ['혼자 트럭', won(r.sh.solo), '없음', fmtDT(r.sch.dest), false],
+      ['차 찰 때까지 대기', won(r.waitCost), waitTxt, fmtDT(r.waitSch.dest), false],
+    ].map(([a, b, c, d, us]) => `<tr class="${us ? 'us' : ''}"><td>${a}</td><td>${b}</td><td>${c}</td><td>${d}</td></tr>`).join('');
+
+    const wxSrc = r.sch.wx.sample ? '그날의 가상 기상값' : `${new Date(r.sch.s.dep * 60000).getUTCMonth() + 1}월 평균 가상 기상값`;
+    $('data-note').textContent = `함께 실릴 다른 고객 물량은 가상 데이터${r.oth.mapped ? '(2026년 10월 같은 요일 값)' : ''}로 추정했습니다. 결항 확률은 ${wxSrc}(파고 ${num(r.sch.wx.w, 1)}m, 풍속 ${num(r.sch.wx.v, 1)}m/s)으로 계산했습니다.`;
+    drawCurve(r);
+  };
+
+  // ---- 예약 (이 브라우저에만 저장) ----
+  const STORE = 'itsum-bookings';
+  const loadBookings = () => { try { return JSON.parse(localStorage.getItem(STORE) || '[]'); } catch (e) { return []; } };
+  const saveBookings = (list) => { try { localStorage.setItem(STORE, JSON.stringify(list)); return true; } catch (e) { return false; } };
+  let memory = loadBookings();
+  const newId = (r) => {
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = ''; for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)];
+    return 'IS' + keyOf(r.sch.s.dep).slice(2).replace(/-/g, '') + '-' + s;
+  };
+  document.querySelectorAll('.book-btn').forEach((btn) => btn.addEventListener('click', () => {
+    if (!current) return;
+    const r = current, id = newId(r);
+    memory = [{ id, created: Date.now(), q: r.q, mine: r.mine, fare: r.sh.fare, ship: r.sch.s.ship, dep: r.sch.s.dep, dest: r.sch.dest, risk: riskLevel(r.sch.wx.p).cls }, ...memory];
+    saveBookings(memory);
+    $('booked-id').textContent = id; $('booked').hidden = false;
+    $('b-id').value = id;
+    renderList();
+    $('booked').scrollIntoView({ block: 'nearest' });
+  }));
+  $('go-booking').addEventListener('click', () => { location.hash = 'booking'; showBooking($('b-id').value); });
+
+  const showBooking = (id) => {
+    const b = memory.find((x) => x.id === id.trim().toUpperCase());
+    $('b-error').hidden = !!b; $('b-result').hidden = !b; $('b-placeholder').hidden = !!b;
+    if (!b) { $('b-error').textContent = '이 브라우저에서 그 예약 번호를 찾지 못했습니다. 번호를 다시 확인해 주세요.'; return; }
+    const r = quote(b.q);
+    const lv = riskLevel(r.sch.wx.p);
+    $('b-code').textContent = b.id;
+    $('b-risk').className = 'badge ' + lv.cls; $('b-risk').textContent = lv.txt + ' ' + pct(r.sch.wx.p);
+    $('b-qty').textContent = slotsTxt(b.mine) + ' · ' + (b.q.temp === 'cold' ? '냉장' : '상온') + ' · ' + b.q.hub + ' → ' + b.q.dest;
+    $('b-fare').textContent = won(b.fare);
+    $('b-ship').textContent = r.sch.s.ship;
+    $('b-dep').textContent = fmtDT(r.sch.s.dep);
+    $('b-port').textContent = fmtDT(r.sch.port);
+    $('b-dest').textContent = fmtDT(r.sch.dest);
+    const changed = r.sch.s.dep !== b.dep || lv.cls !== b.risk;
+    $('b-change').hidden = !changed && lv.cls !== 'high';
+    if (r.sch.s.dep !== b.dep) $('b-change').textContent = `결항 위험이 바뀌어 배편이 ${fmtDT(b.dep)} ${b.ship}에서 ${fmtDT(r.sch.s.dep)} ${r.sch.s.ship}로 바뀌었습니다. 목적지 도착 예정은 ${fmtDT(r.sch.dest)}입니다.`;
+    else if (lv.cls === 'high') $('b-change').textContent = `결항 위험이 높습니다. 결항되면 다음 배편 ${r.sch.next.ship} ${fmtDT(r.sch.next.dep)} 출항, 목적지 도착 ${fmtDT(r.sch.nextDest)} 예정입니다.`;
+    else if (changed) $('b-change').textContent = `예약할 때와 결항 위험 단계가 달라졌습니다. 배편과 도착 예정은 그대로입니다.`;
+  };
+  const renderList = () => {
+    $('b-empty').hidden = memory.length > 0;
+    $('b-list').replaceChildren(...memory.map((b) => {
+      const btn = document.createElement('button'); btn.type = 'button';
+      const a = document.createElement('span'); a.textContent = b.id; a.style.fontWeight = '700';
+      const c = document.createElement('span'); c.className = 'muted small'; c.textContent = fmtDT(b.dep) + ' · ' + b.ship + ' · ' + won(b.fare);
+      btn.append(a, c);
+      btn.addEventListener('click', () => { $('b-id').value = b.id; showBooking(b.id); });
+      return btn;
+    }));
+  };
+  $('bform').addEventListener('submit', (e) => { e.preventDefault(); showBooking($('b-id').value); });
+
+  // ---- 요금 안내 예시 ----
+  const renderPricing = () => {
+    $('ex-truck').innerHTML = truckSvg([{ n: 6, color: '#8D6E63' }, { n: 3, color: 'var(--others)' }, { n: 3, color: 'var(--orange)' }], { aria: '트럭 12칸 중 A 6칸, B 3칸, 나 3칸' });
+    $('ex-share').textContent = won(FARE.weekday * 3 / 12);
+    $('ex-total').textContent = won(share(3, 9, FARE.weekday).fare);
+    const t = share(3, 6, FARE.weekday);
+    $('ex-steps').innerHTML = [
+      ['트럭 1회 비용', won(FARE.weekday), '평일 도선료'],
+      ['내 부피 비율', pct(3 / 9), '9칸 중 3칸'],
+      ['도선료 분담', won(FARE.weekday * 3 / 9), '364,380원 × 3/9'],
+      ['하역비', won(9000), '3칸 × 3,000원'],
+    ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('')
+      + `<li class="total"><span>내 운임 (혼자 ${won(t.solo)}, ${pct(1 - t.fare / t.solo)} 절감)</span><span class="v">${won(t.fare)}</span></li>`;
+  };
+
+  // ---- 화면 전환 ----
+  const VIEWS = ['quote', 'booking', 'pricing'];
+  const route = () => {
+    const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'quote';
+    document.querySelectorAll('[data-page]').forEach((el) => { el.hidden = el.dataset.page !== v; });
+    document.querySelectorAll('nav.tabs a').forEach((a) => { if (a.dataset.view === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    if (v === 'quote') render();
+  };
+  window.addEventListener('hashchange', route);
+  $('qform').addEventListener('input', render);
+  $('qform').addEventListener('change', render);
+  $('qform').addEventListener('submit', (e) => e.preventDefault());
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (current && step === 3) drawCurve(current); }, 120); });
+
+  const start = (data) => {
+    if (data && data.q) { try { writeInputs(data.q); } catch (e) { /* 이전 입력 복원 실패 시 기본값 */ } }
+    renderList(); renderPricing(); route();
+    goStep(data && [1, 2, 3].includes(data.step) ? data.step : 1);
+  };
+  window.claude?.hot?.snapshot?.(() => ({ q: readInputs(), step }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>
