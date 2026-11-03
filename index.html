@@ -135,6 +135,24 @@ button.add { justify-self: start; }
 .fare-card .num { font-size: 48px; }
 .save-card .num { color: var(--orange-deep); }
 .save-card .s { font-weight: 700; color: var(--orange-deep); font-size: 14px; }
+.sbar { display: flex; gap: 2px; height: 12px; margin: 4px 0 2px; }
+.sbar span { border-radius: 3px; min-width: 2px; }
+.s2 { font-size: 12.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.s2 i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.s2 b { font-variant-numeric: tabular-nums; }
+.rsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; }
+.rsteps li { position: relative; display: grid; justify-items: center; gap: 4px; font-size: 12px; color: var(--ink-muted); text-align: center; padding: 0 4px; }
+.rsteps li::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--paper); box-sizing: border-box; z-index: 1; }
+.rsteps li + li::after { content: ""; position: absolute; top: 6px; right: 50%; left: -50%; height: 2px; background: var(--line-strong); }
+.rsteps li.past::before { background: var(--orange); border-color: var(--orange); }
+.rsteps li.past::after, .rsteps li.on::after { background: var(--orange); }
+.rsteps li.on::before { border-color: var(--orange); box-shadow: 0 0 0 4px var(--orange-soft); }
+.rsteps li.on { color: var(--ink); font-weight: 700; }
+.refund-box { border: 1px solid #DCD7F5; border-radius: var(--r); padding: 14px 16px; display: grid; gap: 12px; background: #FBFAFF; }
+.refund-box .nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.refund-box .nums div { display: grid; gap: 2px; }
+.refund-box .nums b { font-size: 18px; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .refund-box .nums { grid-template-columns: 1fr; } .rsteps li { font-size: 10.5px; } }
 details.ai { font-size: 12.5px; }
 details.ai summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 11.5px; padding: 2px 8px; border-radius: 6px; color: var(--ai); background: #EFEDFB; }
 details.ai summary::-webkit-details-marker { display: none; }
@@ -326,6 +344,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
 </style>
 </head>
 <body>
+
 <div class="loading" id="loading">AI 모델 준비 중…</div>
 
 <header class="topbar gutter">
@@ -385,10 +404,21 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         <div class="form-cols">
           <div class="col">
             <h2>화물</h2>
+            <label class="field"><span>택배사 (박스 등급 기준)</span><select id="q-courier"></select></label>
+            <p class="hint" id="courier-hint">—</p>
             <div class="field">
-              <span>화물 목록 (종류가 섞여 있으면 줄을 추가하세요)</span>
+              <span>화물 목록 (박스는 등급별 개수만, 롤테이너는 개수와 채움 정도)</span>
               <div class="cargo" id="q-cargo"><div class="cargo-rows"></div><button type="button" class="ghost sm add">+ 화물 추가</button></div>
             </div>
+            <details class="cfg" id="roll-spec-box">
+              <summary>롤테이너 규격 (회사별 한 번만 등록)</summary>
+              <div class="fields" style="grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 10px">
+                <label class="field"><span>가로 (cm)</span><input type="number" id="rs-w" min="10" step="1" value="80"></label>
+                <label class="field"><span>세로 (cm)</span><input type="number" id="rs-d" min="10" step="1" value="100"></label>
+                <label class="field"><span>높이 (cm)</span><input type="number" id="rs-h" min="10" step="1" value="150"></label>
+              </div>
+              <p class="hint" id="rs-hint">—</p>
+            </details>
             <p class="convert" id="convert">—</p>
             <fieldset class="field">
               <legend>온도</legend>
@@ -431,19 +461,23 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <section class="step" data-step-panel="2" hidden>
         <div class="hero">
           <div class="card fare-card">
-            <span class="k">내 운임 (잇섬 공동운송)</span>
+            <span class="k">확정 견적 (이 금액보다 더 내지 않습니다)</span>
             <span class="num" id="r-fare">—</span>
+            <span class="s" id="r-basis">—</span>
             <span class="s" id="r-range">—</span>
-            <details class="ai"><summary>AI 물량 예측</summary><div class="ai-body" id="ai-vol">—</div></details>
+            <span class="row"><details class="ai"><summary>AI 물량 예측</summary><div class="ai-body" id="ai-vol">—</div></details></span>
           </div>
           <div class="card save-card">
-            <span class="k">혼자 트럭을 띄울 때보다</span>
+            <span class="k" id="r-save-k">혼자 트럭 왕복보다</span>
             <span class="num" id="r-save">—</span>
-            <span class="s" id="r-save-pct">—</span>
+            <div class="sbar" id="r-sbar"></div>
+            <span class="s2" id="r-save-co">—</span>
+            <span class="s2" id="r-save-ai">—</span>
           </div>
           <div class="card">
-            <span class="k">혼자 보낼 때</span>
+            <span class="k">혼자 트럭 왕복</span>
             <span class="num" id="r-solo">—</span>
+            <span class="s">빈 차로 돌아오는 비용 포함</span>
           </div>
         </div>
         <section class="card" aria-labelledby="h-sched">
@@ -463,9 +497,15 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
           </dl>
           <p class="notice high" id="r-highnote" hidden></p>
         </section>
+        <section class="card" aria-labelledby="h-refund">
+          <div class="card-head"><h3 id="h-refund">복화 환급</h3><details class="ai"><summary>AI 복화 예측</summary><div class="ai-body" id="ai-ret">—</div></details></div>
+          <div class="chart" id="r-wf"></div>
+          <div class="scen" id="r-cases"></div>
+          <p class="small muted">고객은 확정 견적보다 더 내지 않습니다. 추가 환급은 귀로편이 출항한 뒤 확정됩니다. 보장 환급은 AI 예측 기반이며, 공차 분담률·귀로편 시각은 <span class="tag asm">가정</span>입니다.</p>
+        </section>
         <section class="card">
           <div class="card-head"><h3>항로 비교</h3><details class="ai"><summary>AI 경로 추천</summary><div class="ai-body" id="ai-route">—</div></details></div>
-          <div class="tablewrap"><table><thead><tr><th>출발항</th><th>상태</th><th>육로</th><th>배편</th><th>제주항 도착</th><th>결항 확률</th><th>내 운임</th><th>기대 비용</th></tr></thead><tbody id="route-table"></tbody></table></div>
+          <div class="tablewrap"><table><thead><tr><th>출발항</th><th>상태</th><th>육로</th><th>배편</th><th>제주항 도착</th><th>결항 확률</th><th>확정 견적</th><th>기대 비용</th></tr></thead><tbody id="route-table"></tbody></table></div>
           <p class="small muted">기대 비용 = 내 운임 + 결항 확률 × 결항 시 다음 배편까지 늦어지는 시간 × 지연 비용(칸·시간당, 가정). 모든 항로의 도착항은 제주항입니다.</p>
         </section>
         <div class="actions"><button type="button" class="ghost" data-goto="1">← 정보 수정</button><div class="row"><button type="button" class="ghost book-btn">이 견적으로 예약하기</button><button type="button" class="primary" data-goto="3">계산 근거 보기 →</button></div></div>
@@ -473,7 +513,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
 
       <section class="step" data-step-panel="3" hidden>
         <section class="card">
-          <div class="card-head"><h3>함께 실리는 화물이 얼마나 되느냐에 따라 운임이 달라집니다</h3><span class="tag ai">AI 물량 예측 기반</span></div>
+          <div class="card-head"><h3>함께 실리는 화물이 얼마나 되느냐에 따라 운임이 달라집니다 <span class="small muted">(왕복 기준 운임, 복화 환급 전)</span></h3><span class="tag ai">AI 물량 예측 기반</span></div>
           <div class="scen" id="scen"></div>
           <div class="legend">
             <span><i style="background: var(--orange);"></i>내 화물</span>
@@ -492,7 +532,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
               <h3>물량별 운임</h3>
               <p class="small muted">같은 날, 같은 배에 실린다고 보고 내 물량만 0.5~12칸으로 바꿔 본 운임입니다.</p>
               <div class="chart" id="curve"></div>
-              <div class="legend"><span><i style="background: var(--orange);"></i>잇섬 운임</span><span><i style="background: var(--ink);"></i>혼자 트럭</span></div>
+              <div class="legend"><span><i style="background: var(--orange);"></i>잇섬 왕복 기준 운임 (환급 전)</span><span><i style="background: var(--ink);"></i>혼자 트럭 왕복</span></div>
             </section>
             <section class="card">
               <h3>보내는 방법 비교</h3>
@@ -507,7 +547,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <div class="done" id="booked" hidden>
         <span class="k">예약 번호</span>
         <span class="code" id="booked-id">—</span>
-        <span class="small muted">견적 운임 <b id="booked-fare">—</b>을 상한으로 보장합니다. 내 예약 조회 화면에서 배편과 도착 예정을 확인할 수 있습니다. 예약은 이 브라우저에만 저장되는 시연용입니다.</span>
+        <span class="small muted">확정 견적 <b id="booked-fare">—</b>보다 더 내지 않습니다. 귀로에 화물이 더 실리면 출항 뒤 추가 환급을 돌려드립니다. 내 예약 조회 화면에서 배편과 도착 예정을 확인할 수 있습니다. 예약은 이 브라우저에만 저장되는 시연용입니다.</span>
         <div class="row"><button type="button" class="ghost" id="go-booking">내 예약 조회로 가기</button></div>
         <div id="booked-intake"></div>
       </div>
@@ -545,9 +585,10 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       </aside>
       <div class="results">
         <section class="card">
-          <h3>육지행 운임은 늘어난 비용만 나눕니다</h3>
-          <p>잇섬 트럭은 어차피 출발항으로 돌아갑니다. 빈 채로 돌아갈 때(공차 도선료)보다 짐을 실어서 늘어나는 도선료만 실린 칸 수 비율로 나누고, 칸당 하역비 3,000원을 더합니다.</p>
-          <p class="small muted">예: 목포항행 트럭에 4칸이 실리고 내 화물이 2칸이면 (364,380원 − 278,220원) × 2/4 + 6,000원 = 49,080원. 혼자 트럭을 띄우면 364,380원입니다. 제주항 출항 시각은 가정값입니다.</p>
+          <h3>육지행 운임: 늘어난 비용 + 빈 차 비용 일부</h3>
+          <p>잇섬 트럭은 어차피 출발항으로 돌아갑니다. 짐을 실어서 늘어나는 도선료(적재 − 공차)에, 빈 차로 돌아갈 때 드는 공차 비용의 일부(공차 분담률 50%, <span class="tag asm">가정</span>)를 더해 실린 칸 수 비율로 나누고, 칸당 하역비 3,000원을 더합니다. 하역비를 뺀 칸당 운임은 40,000원(<span class="tag asm">가정</span>)을 넘지 않습니다.</p>
+          <p class="small muted" id="rq-example">—</p>
+          <p class="notice">내가 낸 운임 일부는 이 트럭으로 제주에 화물을 보낸 고객의 운임을 낮추는 데 쓰입니다.</p>
         </section>
         <div class="done" id="rq-done" hidden><span class="k">요청 번호</span><span class="code" id="rq-done-id">—</span><span class="small muted">요청은 이 브라우저에만 저장되는 시연용입니다.</span><div id="rq-done-intake"></div></div>
         <section class="card"><h3>이 브라우저의 육지행 요청</h3><div class="list" id="rq-list"></div><p class="small muted" id="rq-empty">아직 요청이 없습니다.</p></section>
@@ -582,14 +623,16 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
           <dl class="kv">
             <dt>상태</dt><dd id="b-status">—</dd>
             <dt>화물량</dt><dd id="b-qty">—</dd>
-            <dt>견적 운임</dt><dd id="b-fare">—</dd>
-            <dt>확정 운임</dt><dd id="b-final">—</dd>
+            <dt>확정 견적</dt><dd id="b-fare">—</dd>
+            <dt>복화 환급</dt><dd id="b-refund">—</dd>
+            <dt>최종 운임</dt><dd id="b-final">—</dd>
             <dt>출발항</dt><dd id="b-portname">—</dd>
             <dt>선박</dt><dd id="b-ship">—</dd>
             <dt>출항</dt><dd id="b-dep">—</dd>
             <dt>제주항 도착</dt><dd id="b-port">—</dd>
             <dt>목적지 도착 예정</dt><dd id="b-dest">—</dd>
           </dl>
+          <div id="b-refund-box"></div>
           <div id="b-intake"></div>
         </section>
       </div>
@@ -606,14 +649,19 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         <h3>예시: A 6칸, B 3칸, 나 3칸이 한 트럭에 실리면</h3>
         <div id="ex-strip"></div>
         <div class="legend"><span><i style="background: #8D6E63;"></i>A 6칸</span><span><i style="background: var(--others);"></i>B 3칸</span><span><i style="background: var(--orange);"></i>나 3칸</span></div>
-        <p>목포항 평일 도선료 364,380원을 6 : 3 : 3으로 나눕니다. 나는 <b id="ex-share">—</b>에 하역비 <b>9,000원</b>(3칸 × 3,000원)을 더해 <b id="ex-total" style="color: var(--orange-deep);">—</b>을 냅니다.</p>
+        <p>목포항 트럭 왕복 비용 642,600원(제주행 적재 364,380원 + 빈 차 귀로 278,220원)을 6 : 3 : 3으로 나눕니다. 나는 <b id="ex-share">—</b>에 하역비 <b>9,000원</b>(3칸 × 3,000원)을 더한 <b id="ex-total" style="color: var(--orange-deep);">—</b>이 왕복 기준 운임이고, 귀로에 화물이 실리면 여기서 환급을 받습니다.</p>
         <p class="small muted">함께 실릴 화물이 적어 트럭이 덜 차면 칸당 비용이 올라갑니다. 그래도 내 운임은 혼자 트럭을 띄울 때 비용과 예약 때 받은 견적 운임을 넘지 않습니다.</p>
       </section>
       <div class="stack">
         <section class="card">
-          <h3>계산 확인 예시</h3>
-          <p class="small muted">평일, 목포항, 상온 3칸, 같은 배편 다른 고객 잔량 6칸 → 트럭 9칸 적재</p>
+          <h3>계산 확인 예시: 제주행 (왕복 기준 + 복화 환급)</h3>
+          <p class="small muted">평일, 목포항, 상온, 내 3칸 + 다른 고객 6칸 = 9칸, 공차 분담률 50% <span class="tag asm">가정</span></p>
           <ol class="steps" id="ex-steps"></ol>
+        </section>
+        <section class="card">
+          <h3>계산 확인 예시: 육지행</h3>
+          <p class="small muted">목포항행 귀로 트럭에 8칸, 내 2칸, 공차 분담률 50%, 칸당 상한 40,000원 <span class="tag asm">가정</span></p>
+          <ol class="steps" id="ex-ret-steps"></ol>
         </section>
         <section class="card">
           <div class="card-head"><h3>잇섬으로 보낼 때 상자당 해상 원가</h3><span class="tag syn">가상 데이터</span></div>
@@ -621,6 +669,11 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
           <p class="small muted" id="box-cost-note">—</p>
         </section>
       </div>
+      <section class="card span2">
+        <div class="card-head"><h3>왕복 기준 + 복화 환급</h3><span class="tag ai">AI 예측 기반 보장 환급</span></div>
+        <div class="flow" id="rt-flow"></div>
+        <p class="small muted">제주행 고객은 트럭이 빈 차로 돌아오는 비용까지 포함한 왕복 기준으로 냅니다. 대신 AI가 그 트럭의 귀로 배편에 실릴 육지행 물량을 보수적으로(하위 10%) 예측해, 그만큼의 환급을 견적에서 미리 깎아 드립니다(보장 환급). 실제로 더 실리면 귀로 출항 뒤 더 돌려드립니다(추가 환급).</p>
+      </section>
       <section class="card span2">
         <h3>출발항별 배편과 도선료 (도착항: 제주항)</h3>
         <div class="tablewrap"><table class="left"><thead><tr><th>출발항</th><th>상태</th><th>제주행 배편 (출항 → 제주항 도착 · 마감)</th><th>제주행 적재 (평일 / 일·공휴)</th><th>공차</th><th>제주→육지 적재 / 공차</th><th>출처</th></tr></thead><tbody id="port-table"></tbody></table></div>
@@ -638,6 +691,9 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
           <tr><td>제주항 → 제주 목적지</td><td>제주시 0.5, 서귀포시 1.2, 동부·서부 1.0시간</td><td>가정</td></tr>
           <tr><td>롤테이너 1칸 · 트럭 1대 · 하역비 · 최소 과금</td><td>1.2㎥ · 12칸 · 칸당 3,000원 · 0.25칸</td><td>가정</td></tr>
           <tr><td>다른 고객 물량, 파고·풍속·결항, 육지행 요청</td><td>1년치 학습용 표본 (2025-11-01 ~ 2026-10-31)</td><td>가상 데이터</td></tr>
+          <tr><td>운임 기준</td><td>제주행: 왕복(적재 + 귀로 공차) 기준 − 복화 환급 · 육지행: 늘어난 비용 + 공차 분담</td><td>서비스 정책</td></tr>
+          <tr><td>공차 분담률 · 육지행 칸당 상한 · 보장 환급 예측 분위</td><td>50% · 40,000원 · 하위 10%</td><td>가정</td></tr>
+          <tr><td>공동운송 물량 규모</td><td>목포항 하루 약 150칸, 부산항 약 50칸이 확보된다고 보고 트럭 빈 칸을 최소화</td><td>가정</td></tr>
         </tbody></table></div>
       </section>
     </div>
@@ -728,7 +784,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <div class="kpis" id="bk-kpis"></div>
       <section class="card" id="bk-truck-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>육지행 트럭별 매칭</h3><span class="tag syn">육지행 요청 가상 데이터 포함</span></div>
-        <div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>제주항 → 귀로 항구</th><th>귀로 출항</th><th>실린 육지행 화물</th><th>적재율</th><th>빈 롤테이너 회수</th><th>귀로 순비용</th></tr></thead><tbody id="bk-table"></tbody></table></div>
+        <div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>제주항 → 귀로 항구</th><th>귀로 출항</th><th>실린 육지행 화물</th><th>적재율</th><th>적재 L / 공차 E</th><th>화주 납부 (하역비 제외)</th><th>회수액 R</th><th>비고</th><th>빈 롤테이너 회수</th></tr></thead><tbody id="bk-table"></tbody></table></div>
       </section>
       <section class="card"><h3>매칭 대기 요청</h3><div class="tablewrap"><table><thead><tr><th>요청</th><th>화주</th><th>칸</th><th>온도</th><th>도착 희망</th><th>준비</th><th>사유</th><th>조치</th></tr></thead><tbody id="bk-wait"></tbody></table></div></section>
       <section class="card">
@@ -756,7 +812,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <div class="kpis" id="s-kpis"></div>
       <section class="card" id="s-cust-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>고객별 정산 (육지 → 제주항)</h3><button type="button" class="ghost sm" id="s-csv">정산서 CSV 내려받기</button></div>
-        <div class="tablewrap"><table><thead><tr><th>고객</th><th>구분</th><th>배편 수</th><th>칸</th><th>부피 비율 청구</th><th>샤플리 청구</th><th>혼자 비용</th><th>청구액</th><th>절감률</th><th>견적 보장</th><th>비고</th></tr></thead><tbody id="s-cust"></tbody></table></div>
+        <div class="tablewrap"><table><thead><tr><th>고객</th><th>구분</th><th>배편 수</th><th>칸</th><th>왕복 기준 (부피)</th><th>왕복 기준 (샤플리)</th><th>보장 환급</th><th>실제 환급</th><th>최종 운임</th><th>혼자 (왕복)</th><th>절감액</th><th>비고</th></tr></thead><tbody id="s-cust"></tbody></table></div>
         <p class="small" id="s-check">—</p>
       </section>
       <div class="grid2">
@@ -794,6 +850,13 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <div class="results">
         <section class="card" id="pt-editor"></section>
         <p class="small" id="pt-msg"></p>
+        <section class="card">
+          <div class="card-head"><h3>박스 등급 관리</h3><div class="row"><button type="button" class="ghost sm" id="bx-export">CSV로 내보내기</button><label class="ghost sm" style="display:inline-block;border:1px solid var(--line-strong);border-radius:8px;padding:7px 12px;font-weight:600;color:var(--orange-deep);cursor:pointer">CSV 불러오기<input type="file" id="bx-import" accept=".csv,text/csv" hidden></label><button type="button" class="link" id="bx-reset">초기값으로</button></div></div>
+          <label class="field" style="max-width:260px"><span>택배사</span><select id="bx-courier"></select></label>
+          <div id="bx-editor"></div>
+          <p class="small muted">대표 부피를 비우면 (세 변의 합 ÷ 3)³, 곧 상한 크기의 정육면체로 계산합니다(가정). 견적의 박스 개수 → 칸 수 환산에 바로 쓰입니다.</p>
+          <p class="small" id="bx-msg"></p>
+        </section>
       </div>
     </div>
   </div>
@@ -875,8 +938,9 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
   const isPreHoliday = (d) => !isHoliday(d) && isHoliday(d + DAY);
   const COMPANIES = [
-    { name: '택배A', base: 14, cold: 0.3, hubW: [0.6, 0.25, 0.15] }, { name: '택배B', base: 7, cold: 0.25, hubW: [0.35, 0.45, 0.2] },
-    { name: '택배C', base: 4, cold: 0.2, hubW: [0.2, 0.2, 0.6] }, { name: '화주D', base: 2.2, cold: 0.6, hubW: [0.9, 0.1, 0] }, { name: '화주E', base: 1.2, cold: 0.5, hubW: [0, 0.3, 0.7] },
+    // 물량이 충분히 확보된다는 가정: 목포 하루 약 150칸 규모 (트럭 빈 칸 최소화 시나리오)
+    { name: '택배A', base: 84, cold: 0.3, hubW: [0.6, 0.25, 0.15] }, { name: '택배B', base: 42, cold: 0.25, hubW: [0.35, 0.45, 0.2] },
+    { name: '택배C', base: 24, cold: 0.2, hubW: [0.2, 0.2, 0.6] }, { name: '화주D', base: 13, cold: 0.6, hubW: [0.9, 0.1, 0] }, { name: '화주E', base: 7, cold: 0.5, hubW: [0, 0.3, 0.7] },
   ];
   const DOW_F = [0.35, 1.15, 1.1, 1.0, 1.0, 0.95, 0.7];
   // daily_shipments: [회사][일] = [냉장 마감전, 냉장 마감후, 상온 마감전, 상온 마감후] (롤 수)
@@ -911,7 +975,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         row[s] = [Math.round(w * 10) / 10, Math.round(v * 10) / 10, r() < 1 / (1 + Math.exp(-logit)) ? 1 : 0];
       }
       WXD.push(row);
-      const nRq = Math.max(0, Math.round(SEASON_OUT[mon] / 100 * 12.5 * [0.4, 1.1, 1.1, 1.05, 1.05, 1.0, 0.8][dow] * (isHoliday(d) ? 0.5 : 1) * Math.exp(0.25 * g())));
+      const nRq = Math.max(0, Math.round(SEASON_OUT[mon] / 100 * 60 * [0.4, 1.1, 1.1, 1.05, 1.05, 1.0, 0.8][dow] * (isHoliday(d) ? 0.5 : 1) * Math.exp(0.25 * g())));
       for (let k = 0; k < nRq; k++) {
         const readyOff = 360 + Math.floor(r() * 29) * 30;
         RQD.push({ id: 'RS' + String(++rqn).padStart(4, '0'), di: i, readyOff, shipper: pick(r, SHIPPERS, [3, 2, 2, 1.5, 1.5, 1.2, 0.6, 0.8]), slots: (1 + Math.floor(r() * 8)) / 2, reefer: r() < 0.25, hub: pick(r, HUBS, [0.55, 0.2, 0.25]), port: r() < 0.8 ? 'auto' : pick(r, ['mokpo', 'busan'], [0.7, 0.3]), lead: (1 + Math.floor(r() * 3)) * DAY - Math.floor(r() * 300) });
@@ -1072,6 +1136,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const rx = [], ry = [];
     for (let i = 29; i < NDAYS; i++) { rx.push(rqX(D0 + i * DAY)); ry.push(RQ_DAY[i]); }
     AI.rqMean = GB.fit(rx, ry, { ...opt, trees: 120, loss: 'l2' });
+    AI.rqX = rx; AI.rqY = ry;
+    AI.rqLo = GB.fit(rx, ry, { ...opt, trees: 120, loss: 'q', alpha: SET.q });
     const rerr = [];
     for (let k = HOLD - 29; k < rx.length; k++) if (ry[k] >= 1) rerr.push(Math.abs(ry[k] - GB.pred(AI.rqMean, rx[k])) / ry[k]);
     AI.rqMAPE = mean(rerr);
@@ -1086,6 +1152,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
   const predComp = (ci, d) => { const x = compX(ci, day0(d)); const m = Math.max(0, GB.pred(AI.compMean, x)); return { mean: m, hi: Math.max(m, GB.pred(AI.compHi, x)) }; };
   const predRq = (d) => Math.max(0, GB.pred(AI.rqMean, rqX(day0(d))));
+  const predRqLo = (d) => Math.max(0, Math.min(predRq(d), GB.pred(AI.rqLo, rqX(day0(d)))));
+  const retrainRqLo = () => { AI.rqLo = GB.fit(AI.rqX, AI.rqY, { trees: 120, depth: 3, lr: 0.05, loss: 'q', alpha: SET.q }); };
 
   // =====================================================================
   // ---- 3. 출발항 설정 (출발항 관리 탭에서 수정) ----
@@ -1119,8 +1187,9 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   buildPorts();
   const activePorts = () => PORTS.filter((P) => P.active);
   const portTag = (P) => (!P.active ? '<span class="tag off">요금 미확보</span>' : P.allReal ? '<span class="tag real">실제</span>' : `<span class="tag real">실제 요금</span> <span class="tag asm">${P.sail.some((s) => s.st === 'dep') ? '도착·마감 시각 가정' : '배편 시각 가정'}</span>`) + (P.active && !P.holidayKnown ? ' <span class="tag asm">공휴일 요금 확인 필요</span>' : '');
-  const SET_KEY = 'itsum-settings-v3';
-  const SET = Object.assign({ delayCost: 2000, boxesPerSlot: 40, emptyPerSlot: 3, genRate: 40000, roundTrip: false, th: 0.5, mergeH: 1, openH: 6, jdName: '', jdAddr: '', jdMap: '', jdPhone: '' }, store.get(SET_KEY, {}));
+  const SET_KEY = 'itsum-settings-v4';
+  // alpha: 귀로 공차 비용 중 육지행 화주가 나눠 낼 비율(가정), q: 보장 환급에 쓰는 예측 분위(가정), roundTrip: 왕복 기준 운임
+  const SET = Object.assign({ delayCost: 2000, boxesPerSlot: 40, emptyPerSlot: 3, genRate: 40000, roundTrip: true, alpha: 0.5, q: 0.1, th: 0.5, minFill: 0.5, mergeH: 1, openH: 6, jdName: '', jdAddr: '', jdMap: '', jdPhone: '' }, store.get(SET_KEY, {}));
   const saveSet = () => store.set(SET_KEY, SET);
   MERGE_H = SET.mergeH;
 
@@ -1136,7 +1205,13 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     return `<div class="code" style="font-size:16px">${esc(text)}</div><span>QR 준비 중</span>`;
   };
   const truckCost = (P, dep, driver = 0) => ((isHoliday(dep) && P.fareH ? P.fareH : P.fareW) || 0) + driver + (SET.roundTrip ? (P.retEmpty || P.empty || 0) : 0);
-  const retFare = (P, dep) => ({ L: (isHoliday(dep) && P.retH ? P.retH : (P.retW || P.fareW)) || 0, E: P.retEmpty || P.empty || 0 });
+  // 제주→육지: L 적재, E 공차, inc 늘어난 비용(L−E). 공휴일 공차 요금이 없으면 늘어난 비용은 평일 값으로 쓰고 확인 필요 표시
+  const retFare = (P, dep) => {
+    const hol = isHoliday(dep), Lw = P.retW || P.fareW || 0, Ew = P.retEmpty || P.empty || 0;
+    const L = hol && P.retH ? P.retH : Lw, E = hol && P.retEmptyH ? P.retEmptyH : Ew;
+    const needCheck = hol && !!P.retH && !P.retEmptyH;
+    return { L, E, inc: needCheck ? Lw - Ew : L - E, needCheck };
+  };
   const hubHours = (hub, pid, custom) => (hub === '기타' ? custom : HUB_HOURS[hub][pid]);
 
   // ---- 배편 ----
@@ -1172,15 +1247,74 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     return { mean: (a.mean + b.mean) * f, lo: (a.lo + b.lo) * f, hi: (a.hi + b.hi) * f, mapped: isMapped(d) };
   };
 
+  // ---- 복화 환급 예측: 이 트럭이 돌아가는 귀로 배편에 육지행 화물이 얼마나 실릴지 (AI 육지행 물량 예측) ----
+  const retDepFor = (P, arr) => {
+    const ready = arr + 120, d = day0(arr), c = [];
+    for (let k = 0; k < 3; k++) for (const rt of P.ret) c.push({ dep: d + k * DAY + rt.dep, dur: rt.dur });
+    return c.sort((a, b) => a.dep - b.dep).find((x) => x.dep - 120 >= ready) || null;
+  };
+  const sailTrucksPred = (s) => [0, 1].reduce((a, t) => a + Math.ceil(othersPred(s, t ? 'ambient' : 'cold').mean / SLOTS - 1e-9), 0);
+  const refundMemo = new Map();
+  const refundRate = (P, s) => {
+    // 트럭당 예상 회수액 R̂ = E × α × 회수율 ρ, ρ = min(1, 예측 육지행 칸 ÷ (귀로 트럭 수 × 최소 적재 칸))
+    const k = P.id + '|' + s.dep;
+    if (refundMemo.has(k)) return refundMemo.get(k);
+    const ret = retDepFor(P, s.arr), rd = ret ? ret.dep : s.arr, rf = retFare(P, rd), minLoad = rf.inc / SET.genRate;
+    const myTrucks = Math.max(1, sailTrucksPred(s));
+    const allTrucks = Math.max(myTrucks, activePorts().reduce((a, Q) => a + sailingsOn(Q, day0(s.dep)).reduce((x, t) => x + sailTrucksPred(t), 0), 0));
+    const part = myTrucks / allTrucks, m = predRq(rd) * part, lo = predRqLo(rd) * part;
+    // 트럭당 예상 칸 수로 실제 정산 식과 같은 회수액을 계산: R = min(K, g × 칸) − (L − E), 0 ~ α×E
+    // (최소 적재 미만이면 공차 귀로라 0). 회수율 ρ = 예상 회수액 ÷ 최대 회수액
+    const K = rf.inc + SET.alpha * rf.E, Rmax = SET.alpha * rf.E;
+    const Rof = (perTruck) => Math.max(0, Math.min(Rmax, Math.min(K, SET.genRate * perTruck) - rf.inc));
+    const R = Rof(m / myTrucks), RLo = Math.min(R, Rof(lo / myTrucks));
+    const res = { ret, E: rf.E, inc: rf.inc, minLoad, fullLoad: K / SET.genRate, myTrucks, predMean: m, predLo: lo, rho: Rmax ? R / Rmax : 0, rhoLo: Rmax ? RLo / Rmax : 0, R, RLo, Rmax };
+    refundMemo.set(k, res);
+    return res;
+  };
+  const refundFor = (P, s, sh, mine) => { const rr = refundRate(P, s), f = sh.trucks * mine / sh.total; return { ...rr, guar: rr.RLo * f, exp: rr.R * f, max: rr.Rmax * f }; };
+
   // ---- 운임 ----
-  const share = (mine, others, cost) => {
+  const share =(mine, others, cost) => {
     const total = others + mine, trucks = Math.ceil(total / SLOTS - 1e-9);
     const raw = trucks * cost * mine / total + HANDLING * mine;
     const solo = Math.ceil(mine / SLOTS - 1e-9) * cost;
     return { total, trucks, raw, solo, fare: Math.min(raw, solo), capped: raw > solo };
   };
-  const lineSlots = (l, rollM3) => (l.type === 'roll' ? l.qty : l.type === 'box' ? l.qty * l.size / rollM3 : l.qty / rollM3);
-  const lineTxt = (l, rollM3) => (l.type === 'roll' ? `롤테이너 ${num(l.qty, l.qty % 1 ? 1 : 0)}칸` : l.type === 'box' ? `박스 ${num(l.qty)}개(약 ${num(lineSlots(l, rollM3), 2)}칸)` : `${num(l.qty, 1)}㎥(약 ${num(lineSlots(l, rollM3), 2)}칸)`);
+  // ---- 박스 등급 (택배사별 세 변의 합·무게 상한, 운영자 박스 등급 관리에서 수정) ----
+  const DEFAULT_BOXES = {
+    cj: { name: 'CJ대한통운', short: 'CJ', st: '예시', src: 'CJ대한통운 택배 예약 페이지 (등급 이름과 최대 160cm·25kg만 확인)', grades: [{ n: '극소', sum: 80 }, { n: '소', sum: 100 }, { n: '중', sum: 120 }, { n: '대', sum: 140 }, { n: '특대', sum: 160, kg: 25 }] },
+    lotte: { name: '롯데택배', short: '롯데', st: '실제', src: '롯데택배 요금안내 (lotteglogis.com), 2026-11-03 확인', grades: [{ n: '소형', sum: 110, kg: 5 }, { n: '중형', sum: 130, kg: 15 }, { n: '대형', sum: 160, kg: 20 }] },
+    hanjin: { name: '한진택배', short: '한진', st: '실제', src: '한진택배 요금안내 (hanjin.com), 2026-11-03 확인', grades: [{ n: '초소형', sum: 80, kg: 3 }, { n: '소형', sum: 100, kg: 5 }, { n: '중형', sum: 120, kg: 15 }, { n: '대형', sum: 160, kg: 20 }] },
+    logen: { name: '로젠택배', short: '로젠', st: '예시', src: '요금 페이지 확인 못 함', grades: [{ n: '소', sum: 100 }, { n: '중', sum: 120 }, { n: '대', sum: 160 }] },
+    etc: { name: '기타 (직접 입력)', short: '', st: '가정', src: '잇섬 가정값', grades: [{ n: '소', vol: 0.03 }, { n: '중', vol: 0.06 }, { n: '대', vol: 0.12 }] },
+  };
+  const COURIERS = ['cj', 'lotte', 'hanjin', 'logen', 'etc'];
+  const BOX_KEY = 'itsum-boxes-v1';
+  let BOXES = store.get(BOX_KEY, null) || JSON.parse(JSON.stringify(DEFAULT_BOXES));
+  const stTag = (st) => `<span class="tag ${st === '실제' ? 'real' : 'asm'}">${st}</span>`;
+  // 대표 부피 = 운영자가 넣은 값, 없으면 (세 변의 합 ÷ 3)³ (상한 크기 정육면체, 가정)
+  const gradeVol = (g) => (g.vol > 0 ? g.vol : g.sum > 0 ? Math.pow(g.sum / 3, 3) / 1e6 : 0.06);
+  const gradeOf = (courier, i) => { const c = BOXES[courier] || BOXES.etc; return c.grades[i] || c.grades[0]; };
+  const FILLS = [[1, '가득'], [0.75, '3/4'], [0.5, '반'], [0.25, '1/4']];
+  const lineVol = (l, ctx) => (l.type === 'box' ? l.qty * (l.grade != null ? gradeVol(gradeOf(ctx.courier, l.grade)) : (l.size || 0.06)) : l.type === 'm3' ? l.qty : 0);
+  // 칸 수: 박스·부피 = 부피 ÷ 1칸 부피, 롤테이너 = 개수 × 채움 비율 × (등록 규격 부피 ÷ 1칸 부피)
+  const lineSlots = (l, ctx) => (l.type === 'roll' ? l.qty * (l.fill ?? 1) * ctx.rollSpec / ctx.rollM3 : lineVol(l, ctx) / ctx.rollM3);
+  const lineTxt = (l, ctx) => {
+    if (l.type === 'roll') { const f = FILLS.find((x) => x[0] === (l.fill ?? 1)); return `롤테이너 ${num(l.qty)}개 ${f ? f[1] : ''}(약 ${num(lineSlots(l, ctx), 2)}칸)`; }
+    if (l.type === 'box') { const c = BOXES[ctx.courier] || BOXES.etc, g = l.grade != null ? gradeOf(ctx.courier, l.grade) : null; return `${g ? `${c.short ? esc(c.short) + ' ' : ''}${esc(g.n)}` : '박스'} ${num(l.qty)}개(${num(lineVol(l, ctx), 1)}㎥)`; }
+    return `${num(l.qty, 1)}㎥`;
+  };
+  const ctxOf = (q) => ({ courier: q.courier || 'etc', rollM3: q.rollM3 || 1.2, rollSpec: q.rollSpec || q.rollM3 || 1.2 });
+  // AI 보정: 회사별 "입력 대비 실측 부피 비율" 평균(가상 실측 기록 + 이 브라우저의 실제 실측). 칸 수를 줄이는 쪽으로만 적용
+  const corrFor = (name) => {
+    if (!name || name === '고객') return null;
+    const r = rng(hashStr('corr|' + name)), n = 6 + Math.floor(r() * 15), base = 0.8 + r() * 0.2;
+    const recs = Array.from({ length: n }, () => Math.max(0.7, Math.min(1.1, base + (r() - 0.5) * 0.12)));
+    const real = memory.filter((b) => b.name === name && b.intake && b.intake.measured > 0).map((b) => b.intake.measured / b.mine);
+    const all = [...recs, ...real], avg = mean(all);
+    return { ratio: Math.min(1, avg), avg, n: all.length, real: real.length };
+  };
   const billSlots = (raw) => Math.max(MIN_UNIT, Math.ceil(raw / MIN_UNIT - 1e-9) * MIN_UNIT);
 
   // ---- ② 경로 최적화: 항구별 기대 비용 ----
@@ -1196,7 +1330,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const cost = truckCost(P, s.dep, q.driver), oth = othersPred(s, q.temp);
     const sh = share(mine, q4(oth.mean), cost);
     const delayH = next ? (next.arr - s.arr) / 60 : 24;
-    return { ...base, cost, oth, sh, delayH, exp: sh.fare + c.p * delayH * q.delayCost * mine };
+    const rf = refundFor(P, s, sh, mine), conf = r10(sh.fare - rf.guar);
+    return { ...base, cost, oth, sh, delayH, rf, conf, exp: conf + c.p * delayH * q.delayCost * mine };
   };
   const quote = (q) => {
     const lines = (q.lines || []).filter((l) => l.qty > 0);
@@ -1204,7 +1339,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     if (!/^\d{4}-\d{2}-\d{2}$/.test(q.date || '') || q.date > '2026-12-31') return { error: '출발 희망일을 2026년 12월 31일까지에서 골라 주세요.' };
     if (!/^\d{2}:\d{2}$/.test(q.time || '')) return { error: '출발 시각을 입력해 주세요.' };
     if (q.hub === '기타' && !(q.hubHours >= 0)) return { error: '출발항까지 소요 시간을 입력해 주세요.' };
-    const raw = lines.reduce((a, l) => a + lineSlots(l, q.rollM3), 0), mine = billSlots(raw);
+    const ctx = ctxOf(q), raw0 = lines.reduce((a, l) => a + lineSlots(l, ctx), 0), corr = corrFor(q.name);
+    const raw = raw0 * (corr ? corr.ratio : 1), mine = billSlots(raw);
     const departT = parseDay(q.date) + (+q.time.slice(0, 2)) * 60 + (+q.time.slice(3, 5));
     const evals = PORTS.map((P) => routeEval(P, q, mine, departT));
     const act = evals.filter((e) => !e.inactive);
@@ -1212,41 +1348,52 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const rec = [...act].sort((a, b) => a.exp - b.exp || a.ready - b.ready)[0];
     const pick1 = q.port === 'auto' ? rec : act.find((e) => e.P.id === q.port);
     if (!pick1) return { error: `${P_BY[q.port] ? P_BY[q.port].name : '그 항구'}는 아직 요금이 확인되지 않아 견적을 낼 수 없습니다. 다른 출발항을 골라 주세요.` };
-    const { P, s, cost, oth, sh } = pick1;
-    const fare = r10(sh.fare);
+    const { P, s, cost, oth, sh, rf } = pick1;
+    // 왕복 기준 운임(base) − AI 예측 기반 보장 환급 = 확정 견적(fare). 복화되면 추가 환급
+    const base = r10(sh.fare), fare = pick1.conf, extraMax = Math.max(0, rf.max - rf.guar);
     const cap = sh.trucks * SLOTS;
     const scen = { lo: share(mine, q4(oth.lo), cost), mean: sh, hi: share(mine, q4(oth.hi), cost) };
     const curve = [];
     for (let m = 0.5; m <= 12.0001; m += 0.5) curve.push({ m, its: share(m, q4(oth.mean), cost).fare, solo: Math.ceil(m / SLOTS - 1e-9) * cost });
     const waitDays = mine >= SLOTS ? 0 : Math.ceil(SLOTS / mine) - 1;
-    return { q, lines, raw, mine, departT, P, s, sch: pick1, cost, oth, sh, fare, cap, scen, curve, rec, evals, waitDays, dest: pick1.ready + Math.round(DEST_HOURS[q.dest] * 60) };
+    return { q, lines, ctx, raw0, corr, raw, mine, departT, P, s, sch: pick1, cost, oth, sh, base, fare, rf, extraMax, cap, scen, curve, rec, evals, waitDays, dest: pick1.ready + Math.round(DEST_HOURS[q.dest] * 60) };
   };
 
   // =====================================================================
   // ---- 4. 고객 화면 ----
-  const makeCargo = (root, onChange) => {
+  // 화물 줄: 박스(택배사 등급 + 개수) / 롤테이너(개수 + 채움 정도) / 부피 직접 입력(택배사 '기타'일 때만)
+  const makeCargo = (root, onChange, getCourier) => {
     const rowsEl = root.querySelector('.cargo-rows');
-    const sync = (row) => {
-      const t = row.querySelector('.c-type').value, qty = row.querySelector('.c-qty');
-      row.querySelector('.c-size').style.visibility = t === 'box' ? '' : 'hidden';
-      row.querySelector('.c-unit').textContent = t === 'roll' ? '칸' : t === 'box' ? '개' : '㎥';
-      qty.step = t === 'roll' ? '0.5' : t === 'box' ? '1' : '0.1';
+    const typeOpts = () => `<option value="box">박스</option><option value="roll">롤테이너</option>${getCourier() === 'etc' ? '<option value="m3">부피(㎥) 직접</option>' : ''}`;
+    const sizeOpts = (t) => (t === 'box' ? (BOXES[getCourier()] || BOXES.etc).grades.map((g, i) => `<option value="${i}">${esc(g.n)}${g.sum ? ` ${g.sum}cm` : ''}${g.kg ? `·${g.kg}kg` : ''} (${num(gradeVol(g), 3)}㎥)</option>`).join('') : t === 'roll' ? FILLS.map(([v, n]) => `<option value="${v}">${n}</option>`).join('') : '');
+    const sync = (row, want) => {
+      const t = row.querySelector('.c-type').value, sz = row.querySelector('.c-size'), prev = want ?? sz.value;
+      sz.innerHTML = sizeOpts(t); sz.style.visibility = t === 'm3' ? 'hidden' : '';
+      if ([...sz.options].some((o) => o.value === String(prev))) sz.value = String(prev);
+      sz.setAttribute('aria-label', t === 'box' ? '박스 등급' : '채움 정도');
+      row.querySelector('.c-unit').textContent = t === 'm3' ? '㎥' : '개';
+      row.querySelector('.c-qty').step = t === 'm3' ? '0.1' : '1';
     };
     const updDel = () => { const rows = rowsEl.children; [...rows].forEach((r) => { r.querySelector('.c-del').disabled = rows.length === 1; }); };
     const add = (l) => {
-      rowsEl.insertAdjacentHTML('beforeend', `<div class="cargo-row"><select class="c-type" aria-label="화물 종류"><option value="roll">롤테이너</option><option value="box">박스</option><option value="m3">부피</option></select><input type="number" class="c-qty" min="0" aria-label="수량"><select class="c-size" aria-label="박스 크기"><option value="0.03">소 0.03㎥</option><option value="0.06">중 0.06㎥</option><option value="0.12">대 0.12㎥</option></select><span class="c-unit"></span><button type="button" class="c-del" aria-label="이 화물 줄 삭제">×</button></div>`);
-      const row = rowsEl.lastElementChild;
-      row.querySelector('.c-type').value = l.type; row.querySelector('.c-qty').value = l.qty; row.querySelector('.c-size').value = String(l.size || 0.06);
-      sync(row);
+      rowsEl.insertAdjacentHTML('beforeend', `<div class="cargo-row"><select class="c-type" aria-label="화물 종류">${typeOpts()}</select><input type="number" class="c-qty" min="0" aria-label="수량"><select class="c-size"></select><span class="c-unit"></span><button type="button" class="c-del" aria-label="이 화물 줄 삭제">×</button></div>`);
+      const row = rowsEl.lastElementChild, ty = row.querySelector('.c-type');
+      ty.value = [...ty.options].some((o) => o.value === l.type) ? l.type : 'box';
+      row.querySelector('.c-qty').value = l.qty;
+      sync(row, ty.value === 'box' ? (l.grade ?? 1) : ty.value === 'roll' ? (l.fill ?? 1) : null);
     };
-    const get = () => [...rowsEl.children].map((row) => ({ type: row.querySelector('.c-type').value, qty: +row.querySelector('.c-qty').value, size: +row.querySelector('.c-size').value }));
-    const set = (lines) => { rowsEl.innerHTML = ''; (lines && lines.length ? lines : [{ type: 'roll', qty: 3, size: 0.06 }]).forEach(add); updDel(); };
-    root.querySelector('.add').addEventListener('click', () => { add({ type: 'box', qty: 20, size: 0.06 }); updDel(); rowsEl.lastElementChild.querySelector('.c-qty').focus(); onChange(); });
-    rowsEl.addEventListener('change', (e) => { if (e.target.classList.contains('c-type')) sync(e.target.closest('.cargo-row')); onChange(); });
+    const get = () => [...rowsEl.children].map((row) => {
+      const t = row.querySelector('.c-type').value, qty = +row.querySelector('.c-qty').value, v = +row.querySelector('.c-size').value;
+      return t === 'box' ? { type: 'box', qty, grade: v } : t === 'roll' ? { type: 'roll', qty, fill: v } : { type: 'm3', qty };
+    });
+    const set = (lines) => { rowsEl.innerHTML = ''; (lines && lines.length ? lines : [{ type: 'roll', qty: 3, fill: 1 }]).forEach(add); updDel(); };
+    const refresh = () => [...rowsEl.children].forEach((row) => { const ty = row.querySelector('.c-type'), cur = ty.value; ty.innerHTML = typeOpts(); ty.value = [...ty.options].some((o) => o.value === cur) ? cur : 'box'; sync(row); });
+    root.querySelector('.add').addEventListener('click', () => { add({ type: 'box', qty: 20, grade: 1 }); updDel(); rowsEl.lastElementChild.querySelector('.c-qty').focus(); onChange(); });
+    rowsEl.addEventListener('change', (e) => { if (e.target.classList.contains('c-type')) { const t = e.target.value; sync(e.target.closest('.cargo-row'), t === 'box' ? 1 : t === 'roll' ? 1 : null); } onChange(); });
     rowsEl.addEventListener('input', onChange);
     rowsEl.addEventListener('click', (e) => { const b = e.target.closest('.c-del'); if (b && !b.disabled) { b.closest('.cargo-row').remove(); updDel(); onChange(); } });
     set([]);
-    return { get, set };
+    return { get, set, refresh };
   };
   let portsVer = 0;
   const fillHubPort = (hubSel, portSel, autoLabel, keep) => {
@@ -1259,13 +1406,23 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
 
   let render = () => {};
-  const cargo = makeCargo($('q-cargo'), () => render());
+  const fillCouriers = (sel) => { const prev = sel.value || 'hanjin'; sel.innerHTML = COURIERS.map((k) => `<option value="${k}">${esc(BOXES[k].name)}${BOXES[k].st === '실제' ? '' : ` (등급 ${BOXES[k].st})`}</option>`).join(''); sel.value = prev; };
+  fillCouriers($('q-courier'));
+  const cargo = makeCargo($('q-cargo'), () => render(), () => $('q-courier').value);
+  $('q-courier').addEventListener('change', () => cargo.refresh());
+  // 롤테이너 규격: 보내는 분(회사)별로 한 번 등록해 브라우저에 보관
+  const ROLL_KEY = 'itsum-rollspec-v1';
+  let ROLLS = store.get(ROLL_KEY, {});
+  const rollSpecOf = () => (+$('rs-w').value * +$('rs-d').value * +$('rs-h').value) / 1e6 || 1.2;
+  $('q-name').addEventListener('change', () => { const s = ROLLS[$('q-name').value.trim()]; if (s) { $('rs-w').value = s.w; $('rs-d').value = s.d; $('rs-h').value = s.h; } render(); });
+  ['rs-w', 'rs-d', 'rs-h'].forEach((id) => $(id).addEventListener('change', () => { const n = $('q-name').value.trim(); if (n) { ROLLS[n] = { w: +$('rs-w').value, d: +$('rs-d').value, h: +$('rs-h').value }; store.set(ROLL_KEY, ROLLS); } render(); }));
   const readInputs = () => ({
-    name: $('q-name').value.trim(), lines: cargo.get(), temp: val('temp'), hub: $('q-hub').value, hubHours: +$('q-hubhours').value, port: $('q-port').value, dest: $('q-dest').value,
+    name: $('q-name').value.trim(), courier: $('q-courier').value, rollSpec: rollSpecOf(), lines: cargo.get(), temp: val('temp'), hub: $('q-hub').value, hubHours: +$('q-hubhours').value, port: $('q-port').value, dest: $('q-dest').value,
     date: $('q-date').value, time: $('q-time').value, rollM3: +$('c-roll').value || 1.2, driver: +$('c-driver').value || 0, th: +$('c-th').value || 0.5, delayCost: +$('c-delay').value || 0,
   });
   const writeInputs = (q) => {
     if (!q.lines || !q.dest) return;
+    if (q.courier && BOXES[q.courier]) { $('q-courier').value = q.courier; cargo.refresh(); }
     cargo.set(q.lines);
     document.querySelector('input[name="temp"][value="' + q.temp + '"]').checked = true;
     $('q-name').value = q.name || ''; $('q-hub').value = q.hub; $('q-hubhours').value = q.hubHours; $('q-port').value = q.port; $('q-dest').value = q.dest;
@@ -1293,6 +1450,26 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     parts.forEach((p) => { s += `<rect x="${p.x2}" y="${y2}" width="${Math.max(1, p.w2 - 2)}" height="${h2}" rx="3" fill="${p.color}"/>`; s += lab(won10(cost * p.n / loaded), p.x2 + p.w2 / 2, p.w2, y2 + h2 / 2 + 4, p.ink || '#fff'); });
     s += `<text x="0" y="${y2 + h2 + 16}" fill="var(--ink-muted)">도선료 ${won(cost)}을 실린 ${slotsTxt(loaded)}로 나눔</text></svg>`;
     return s;
+  };
+  // 계단식 막대(워터폴): total = 바닥부터, down = 앞 막대 끝에서 내려감, key = 강조(확정 견적)
+  const waterfall = (el, steps) => {
+    const W = Math.max(320, el.clientWidth || 640), H = 200, m = { t: 26, b: 34, l: 8, r: 8 };
+    const max = Math.max(...steps.map((s) => Math.abs(s.v))) * 1.05, n = steps.length, bw = (W - m.l - m.r) / n, w = Math.min(90, bw * 0.62);
+    const y = (v) => H - m.b - v / max * (H - m.t - m.b);
+    const color = { total: 'var(--others)', key: 'var(--orange)', down: 'var(--ai)', down2: '#B9B0EE' };
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="display:block;font-family:inherit;font-size:12px" role="img" aria-label="${steps.map((x) => x.label + ' ' + won(Math.abs(x.v))).join(', ')}">`;
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line-strong)"/>`;
+    let level = 0;
+    steps.forEach((st, i) => {
+      const cx = m.l + bw * (i + 0.5);
+      let top, bot;
+      if (st.v >= 0) { top = y(st.v); bot = y(0); level = st.v; } else { top = y(level); bot = y(level + st.v); level += st.v; }
+      s += `<rect x="${cx - w / 2}" y="${top}" width="${w}" height="${Math.max(1, bot - top)}" rx="4" fill="${color[st.kind]}"/>`;
+      if (i < n - 1) s += `<line x1="${cx + w / 2}" x2="${cx + bw - w / 2}" y1="${y(level)}" y2="${y(level)}" stroke="var(--line-strong)" stroke-dasharray="3 3"/>`;
+      s += `<text x="${cx}" y="${top - 6}" text-anchor="middle" font-weight="${st.kind === 'key' ? 700 : 600}" fill="${st.kind === 'key' ? 'var(--orange-deep)' : 'var(--ink)'}">${st.v < 0 ? '−' : ''}${won(Math.abs(st.v))}</text>`;
+      s += `<text x="${cx}" y="${H - 12}" text-anchor="middle" fill="${st.kind === 'key' ? 'var(--orange-deep)' : 'var(--ink-muted)'}" font-weight="${st.kind === 'key' ? 700 : 400}">${st.label}</text>`;
+    });
+    el.innerHTML = s + '</svg>';
   };
   const drawCurve = (r) => {
     const el = $('curve');
@@ -1357,18 +1534,42 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     current = r;
     paintStepper();
     $('booked').hidden = true;
-    $('convert').innerHTML = `${r.lines.map((l) => lineTxt(l, q.rollM3)).join(' + ')} → 과금 <b>${slotsTxt(r.mine)}</b> (0.25칸 단위 올림, 약 ${num(r.mine * q.rollM3, 1)}㎥)`;
+    const cx = r.ctx, bx = BOXES[cx.courier] || BOXES.etc;
+    $('convert').innerHTML = `${r.lines.map((l) => lineTxt(l, cx)).join(' + ')} → 약 ${num(r.raw0, 2)}칸${r.corr && r.corr.ratio < 0.995 ? ` → <span class="tag ai">AI 보정 ×${num(r.corr.ratio, 2)}</span> 최근 실측 ${r.corr.n}건 평균${r.corr.real ? `(실제 ${r.corr.real}건 포함)` : ''} <span class="tag syn">가상</span> → 약 ${num(r.raw, 2)}칸` : ''} → 과금 <b>${slotsTxt(r.mine)}</b> (0.25칸 단위 올림)${r.lines.some((l) => l.type === 'box') ? ' · 대표 부피는 상한 기준 <span class="tag asm">가정</span>' : ''} · 정산은 합적 지점 실측으로 합니다`;
+    $('courier-hint').innerHTML = `${stTag(bx.st)} ${esc(bx.src)} · 박스는 등급별 개수만 넣으세요`;
+    $('rs-hint').innerHTML = `${$('rs-w').value}×${$('rs-d').value}×${$('rs-h').value}cm = ${num(cx.rollSpec, 2)}㎥ (1칸 ${num(cx.rollM3, 1)}㎥의 ${num(cx.rollSpec / cx.rollM3, 2)}배)${q.name ? (ROLLS[q.name] ? ` · ${esc(q.name)} 규격으로 저장됨` : ` · 바꾸면 ${esc(q.name)} 규격으로 저장`) : ' · 보내는 분을 입력하면 회사별로 저장'}`;
     $('port-hint').innerHTML = q.port === 'auto' || r.rec.P.id === r.P.id ? `AI 추천 출발항 <b>${r.rec.P.name}</b> · 기대 비용 ${won10(r.rec.exp)}이 가장 낮음` : `AI 추천은 <b>${r.rec.P.name}</b>(기대 비용 ${won10(r.rec.exp)}) · 지금 고른 ${r.P.name}은 ${won10(r.sch.exp)}`;
     $('summary-txt').textContent = `${q.temp === 'cold' ? '냉장' : '상온'} ${slotsTxt(r.mine)} · ${q.hub === '기타' ? '기타' : q.hub} → ${r.P.name} → 제주항 → ${q.dest} · ${fmtDate(r.departT)} ${q.time} 출발`;
     // 2단계
     const save = r.sh.solo - r.fare, sc = r.sch;
     $('r-fare').textContent = won(r.fare);
-    const fs = [r.scen.lo.fare, r.scen.mean.fare, r.scen.hi.fare];
-    $('r-range').textContent = `예측 범위 ${won10(Math.min(...fs))} ~ ${won10(Math.max(...fs))} (함께 실릴 물량 10%~90%)`;
+    $('r-basis').textContent = `왕복 기준 ${won(r.base)} − AI 예측 기반 보장 환급 ${won10(r.rf.guar)}`;
+    $('r-range').textContent = r.extraMax > 5 ? `복화되면 추가 환급 최대 ${won10(r.extraMax)} · 최대 환급 시 ${won10(r.base - r.rf.max)} ~ 확정 견적 ${won(r.fare)}` : '보장 환급이 최대 환급과 같습니다';
+    const rr = r.rf;
+    $('ai-ret').innerHTML = `이 트럭은 ${rr.ret ? `${fmtDT(rr.ret.dep)} 제주항 → ${r.P.name} 귀로 배편 <span class="tag asm">가정</span>` : '귀로 배편'}으로 돌아갑니다. 그 배편의 육지행 물량을 <b>평균 ${num(rr.predMean, 1)}칸</b>(하위 ${Math.round(SET.q * 100)}% ${num(rr.predLo, 1)}칸)으로 예측했고, 트럭 ${rr.myTrucks}대에 나누면 트럭당 평균 ${num(rr.predMean / rr.myTrucks, 1)}칸(보수적 ${num(rr.predLo / rr.myTrucks, 1)}칸)이고, 최대 회수에는 트럭당 ${num(rr.fullLoad, 1)}칸이 필요해 회수 가능성은 평균 ${pct(rr.rho)}, 보수적으로 ${pct(rr.rhoLo)}입니다. 보수적 회수율로 계산한 환급(트럭당 공차 비용 ${won(rr.E)} × 분담률 ${pct(SET.alpha)} <span class="tag asm">가정</span> × ${pct(rr.rhoLo)} × 내 칸 비율)을 견적에서 미리 깎았습니다. 실제로 더 실리면 출항 뒤 더 돌려드립니다.`;
     $('ai-vol').innerHTML = `같은 배편(${sailName(r.s)}) ${q.temp === 'cold' ? '냉장' : '상온'} 트럭에 함께 실릴 다른 고객 물량을 <b>평균 ${num(r.oth.mean, 1)}칸</b>(10%~90%: ${num(r.oth.lo, 1)}~${num(r.oth.hi, 1)}칸)으로 예측했습니다. 요일·월·공휴일·쇼핑 행사·최근 물량으로 학습한 그래디언트 부스팅 모델이며, 검증 오차(MAPE)는 ${pct(AI.volMAPE)}입니다.${r.oth.mapped ? ' 가상 데이터(작년 같은 기간 값을 옮김) 기준입니다.' : ''}`;
-    $('r-save').textContent = won(save);
-    $('r-save-pct').textContent = pct(save / r.sh.solo) + ' 절감';
+    // 혼자 왕복 = 확정 견적 + 공동적재 절감 + 보장 환급
+    const coSave = r.sh.solo - r.base, guarShown = r.base - r.fare;
+    $('r-save-k').textContent = `혼자 트럭 왕복 ${won(r.sh.solo)}보다`;
+    $('r-save').textContent = won(save) + ' 절감';
+    $('r-sbar').innerHTML = [[r.fare, 'var(--orange-deep)', '내가 내는 확정 견적'], [coSave, '#FFCC80', '공동적재로 아낀 돈'], [guarShown, 'var(--ai)', 'AI 예측 환급으로 미리 깎은 돈']].map(([v, c, t]) => `<span style="flex:${Math.max(0, v)};background:${c}" title="${t} ${won(v)}"></span>`).join('');
+    $('r-save-co').innerHTML = `<i style="background:#FFCC80"></i>공동적재로 아낀 돈 <b>${won(coSave)}</b>`;
+    $('r-save-ai').innerHTML = `<i style="background:var(--ai)"></i>AI 예측 환급으로 미리 깎은 돈 <b>${won(guarShown)}</b> · 복화되면 최대 ${won10(r.rf.max)}까지`;
     $('r-solo').textContent = won(r.sh.solo);
+    // 복화 환급 카드: 워터폴과 경우별 금액
+    const minFare = r10(r.base - r.rf.max), meanFare = Math.min(r.fare, r10(r.base - r.rf.exp));
+    waterfall($('r-wf'), [
+      { label: '왕복 기준', v: r.base, kind: 'total' },
+      { label: '보장 환급', v: -guarShown, kind: 'down' },
+      { label: '확정 견적', v: r.fare, kind: 'key' },
+      { label: '추가 환급 최대', v: -(r.fare - minFare), kind: 'down2' },
+      { label: '최저', v: minFare, kind: 'total' },
+    ]);
+    $('r-cases').innerHTML = [
+      ['귀로 화물이 없을 때', r.fare, '확정 견적 그대로'],
+      ['예측 평균대로 실릴 때', meanFare, `회수율 ${pct(r.rf.rho)} 기준`],
+      ['귀로가 가득 실릴 때', minFare, '전체 환급 반영'],
+    ].map(([t, v, s], i) => `<div class="card${i === 0 ? ' on' : ''}"><span class="k">${t}</span><span class="num">${won(v)}</span><span class="s">${s}</span></div>`).join('');
     const lv = riskLevel(sc.c.p);
     $('r-risk').className = 'badge ' + lv.cls; $('r-risk').textContent = lv.txt + ' ' + pct(sc.c.p);
     $('ai-cx').innerHTML = `파고 ${num(sc.c.w, 1)}m, 풍속 ${num(sc.c.v, 1)}m/s 예보로 계산한 결항 확률은 <b>${pct(sc.c.p)}</b>입니다. 주요 원인: ${sc.c.whyTxt}. 1년치 가상 운항 기록으로 학습한 분류 모델(검증 AUC ${num(AI.cxEvalGB.auc, 2)})입니다.`;
@@ -1383,22 +1584,25 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     if (sc.skipped.length) $('r-moved').textContent = sc.skipped.map((x) => `${sailName(x.s)} 결항 확률 ${pct(x.c.p)}`).join(' → ') + ` 로 기준값 ${pct(q.th)}를 넘어 ${sailName(r.s)}로 미리 옮겼습니다.`;
     $('r-highnote').hidden = lv.cls !== 'high';
     if (lv.cls === 'high' && sc.next) $('r-highnote').textContent = `이 배편도 결항되면 다음 배편 ${sc.next.ship} ${fmtDT(sc.next.dep)} 출항, 제주항 ${fmtDT(sc.next.arr + HANDOVER_H * 60)} 인수 가능 예정입니다.`;
-    $('route-table').innerHTML = r.evals.map((e) => `<tr class="${e.P.id === r.P.id ? 'us' : e.inactive ? 'dim' : ''}"><td>${e.P.name}${e === r.rec ? ' <span class="tag ai">AI 추천</span>' : ''}${e.P.id === r.P.id ? ' <span class="small muted">선택</span>' : ''}</td><td>${portTag(e.P)}</td><td>${num(e.hours, 1)}시간</td><td>${e.s.ship} ${fmtTime(e.s.dep)}${e.skipped.length ? ` <span class="small muted">(${e.skipped.length}편 건너뜀)</span>` : ''}</td><td>${fmtDT(e.s.arr)}</td><td>${pct(e.c.p)}</td><td>${e.inactive ? '요금 확인 후 계산' : won10(e.sh.fare)}</td><td>${e.inactive ? '요금 확인 후 계산' : won10(e.exp)}</td></tr>`).join('');
+    $('route-table').innerHTML = r.evals.map((e) => `<tr class="${e.P.id === r.P.id ? 'us' : e.inactive ? 'dim' : ''}"><td>${e.P.name}${e === r.rec ? ' <span class="tag ai">AI 추천</span>' : ''}${e.P.id === r.P.id ? ' <span class="small muted">선택</span>' : ''}</td><td>${portTag(e.P)}</td><td>${num(e.hours, 1)}시간</td><td>${e.s.ship} ${fmtTime(e.s.dep)}${e.skipped.length ? ` <span class="small muted">(${e.skipped.length}편 건너뜀)</span>` : ''}</td><td>${fmtDT(e.s.arr)}</td><td>${pct(e.c.p)}</td><td>${e.inactive ? '요금 확인 후 계산' : won(e.conf)}</td><td>${e.inactive ? '요금 확인 후 계산' : won10(e.exp)}</td></tr>`).join('');
     $('ai-route').innerHTML = `요금이 확인된 항구마다 결항 확률을 반영한 <b>기대 비용</b>(운임 + 결항 확률 × 지연 ${q.delayCost.toLocaleString('ko-KR')}원/칸·시간 × 늦어지는 시간)을 계산해 가장 낮은 <b>${r.rec.P.name}</b>을 추천했습니다. 배편이 기준값을 넘으면 다음 배편, 그다음 배편 순서로 찾습니다.`;
     // 3단계
     const scenCard = (title, sh, on, note) => {
       const cap = sh.trucks * SLOTS, others = sh.total - r.mine, mineShare = sh.trucks * r.cost * r.mine / sh.total;
-      return `<div class="card${on ? ' on' : ''}"><div class="card-head"><span class="k">${title}</span>${on ? '<span class="tag real">지금 견적</span>' : ''}</div><span class="num">${won10(sh.fare)}</span><span class="s">${note} · 트럭 ${slotsTxt(sh.total)} / ${cap}칸 (${pct(sh.total / cap)})</span>${fareStrip([{ label: '다른 고객', n: others, color: 'var(--others)', ink: '#3E2723' }, { label: '나', n: r.mine, color: 'var(--orange)' }], cap, sh.trucks * r.cost)}<span class="split">내 몫 <b>${won10(mineShare)}</b> + 하역비 <b>${won(HANDLING * r.mine)}</b>${sh.capped ? ' → 혼자 보낼 때 비용으로 상한' : ''}</span></div>`;
+      return `<div class="card${on ? ' on' : ''}"><div class="card-head"><span class="k">${title}</span>${on ? '<span class="tag real">예측 평균</span>' : ''}</div><span class="num">${won10(sh.fare)}</span><span class="s">${note} · 트럭 ${slotsTxt(sh.total)} / ${cap}칸 (${pct(sh.total / cap)})</span>${fareStrip([{ label: '다른 고객', n: others, color: 'var(--others)', ink: '#3E2723' }, { label: '나', n: r.mine, color: 'var(--orange)' }], cap, sh.trucks * r.cost)}<span class="split">내 몫 <b>${won10(mineShare)}</b> + 하역비 <b>${won(HANDLING * r.mine)}</b>${sh.capped ? ' → 혼자 보낼 때 비용으로 상한' : ''}</span></div>`;
     };
     $('scen').innerHTML = scenCard('함께 실릴 화물이 적을 때', r.scen.lo, false, '예측 하위 10%') + scenCard('예측 평균', r.scen.mean, true, `다른 고객 ${num(r.oth.mean, 1)}칸`) + scenCard('함께 실릴 화물이 많을 때', r.scen.hi, false, '예측 상위 10%');
     const fareName = isHoliday(r.s.dep) && r.P.fareH ? '일·공휴일' : '월~토';
+    const F = truckCost(r.P, r.s.dep, q.driver) - (SET.roundTrip ? (r.P.retEmpty || r.P.empty || 0) : 0);
     $('steps').innerHTML = [
-      ['트럭 1회 비용', won(r.cost), `${r.P.name}→제주항 4.5톤 단축 적재 ${fareName} 도선료${q.driver ? ' + 기사 승선료 ' + won(q.driver) : ''}${SET.roundTrip ? ' + 귀로 공차 비용(왕복 원가 반영)' : ''}`],
-      ['트럭 예상 적재', `${slotsTxt(r.sh.total)} / ${r.sh.trucks * SLOTS}칸`, `같은 배편 다른 고객 예측 ${num(r.oth.mean, 1)}칸(0.25칸 단위 ${slotsTxt(q4(r.oth.mean))}) + 내 화물 ${slotsTxt(r.mine)}${r.sh.trucks > 1 ? ` · 12칸을 넘어 트럭 ${r.sh.trucks}대` : ''}`],
-      ['내 부피 비율', pct(r.mine / r.sh.total), `${slotsTxt(r.sh.total)} 중 ${slotsTxt(r.mine)}`],
+      ['트럭 왕복 비용', won(r.cost), `${r.P.name}→제주항 적재 ${fareName} ${won(F - q.driver)}${SET.roundTrip ? ` + 제주항→${r.P.name} 귀로 공차 ${won(r.cost - F)}` : ''}${q.driver ? ' + 기사 승선료 ' + won(q.driver) : ''}`],
+      ['내 칸 비율', pct(r.mine / r.sh.total), `트럭 ${slotsTxt(r.sh.total)} / ${r.sh.trucks * SLOTS}칸 중 ${slotsTxt(r.mine)} · 다른 고객 예측 ${num(r.oth.mean, 1)}칸${r.sh.trucks > 1 ? ` · 트럭 ${r.sh.trucks}대` : ''}`],
       ['도선료 분담', won(r.sh.trucks * r.cost * r.mine / r.sh.total), `${won(r.sh.trucks * r.cost)} × ${pct(r.mine / r.sh.total)}`],
       ['하역비', won(HANDLING * r.mine), `칸당 3,000원 × ${slotsTxt(r.mine)}`],
-    ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('') + `<li class="total"><span>내 운임 (10원 단위)</span><span class="v">${won(r.fare)}</span>${r.sh.capped ? `<span class="d">계산값 ${won(r.sh.raw)}이 혼자 보낼 때 비용을 넘어 상한까지 깎았습니다.</span>` : ''}</li>`;
+      ['왕복 기준 운임', won(r.base), r.sh.capped ? `계산값 ${won(r.sh.raw)}이 혼자 왕복 비용을 넘어 상한까지 깎음` : '10원 단위'],
+      ['보장 환급 (AI 예측 기반)', '−' + won10(r.rf.guar), `트럭당 회수 예상 ${won10(r.rf.RLo)}(보수적 회수율 ${pct(r.rf.rhoLo)}) × 내 칸 비율`],
+    ].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('')
+      + `<li class="total"><span>확정 견적</span><span class="v">${won(r.fare)}</span><span class="d">복화되면 추가 환급 최대 ${won10(r.extraMax)} (공차 비용 × 분담률 ${pct(SET.alpha)} × 내 칸 비율 − 보장 환급)</span></li>`;
     const waitCost = r.cost * r.mine / SLOTS + HANDLING * r.mine;
     $('cmp').innerHTML = [
       ['비용', won(r.fare), won(r.sh.solo), r.mine >= SLOTS ? won(r.sh.solo) : won10(waitCost)],
@@ -1415,7 +1619,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   const saveBookings = () => store.set(STORE, memory);
   const randId = () => { const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)]; return s; };
   let bumpOps = () => {}, syncOverrides = () => {}, finalFareOf = () => null;
-  const makeBooking = (r, demo) => ({ id: 'IS' + keyOf(r.s.dep).slice(2).replace(/-/g, '') + '-' + randId(), created: Date.now(), name: r.q.name || '고객', q: r.q, port: r.P.id, mine: r.mine, fare: r.fare, solo: r.sh.solo, ship: r.s.ship, dep: r.s.dep, risk: riskLevel(r.sch.c.p).cls, demo: !!demo });
+  const makeBooking = (r, demo) => ({ id: 'IS' + keyOf(r.s.dep).slice(2).replace(/-/g, '') + '-' + randId(), created: Date.now(), name: r.q.name || '고객', q: r.q, port: r.P.id, mine: r.mine, fare: r.fare, base: r.base, guar: r10(r.rf.guar), expRefund: r10(r.rf.exp), maxRefund: r10(r.rf.max), solo: r.sh.solo, ship: r.s.ship, dep: r.s.dep, risk: riskLevel(r.sch.c.p).cls, demo: !!demo });
   document.querySelectorAll('.book-btn').forEach((btn) => btn.addEventListener('click', () => {
     if (!current) return;
     const b = makeBooking(current);
@@ -1430,7 +1634,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   $('go-booking').addEventListener('click', () => { location.hash = 'booking'; showBooking($('b-id').value); });
   $('b-demo').addEventListener('click', () => {
     const base = { lines: [{ type: 'roll', qty: 3, size: 0.06 }], temp: 'ambient', hub: '수도권', hubHours: 2, port: 'mokpo', dest: '제주시', date: addDays(todayKey, 1), time: '10:00', rollM3: 1.2, driver: 0, th: SET.th, delayCost: SET.delayCost };
-    const qs = [{ ...base, name: '한빛상회 (시연)' }, { ...base, name: '제주상사 (시연)', lines: [{ type: 'box', qty: 40, size: 0.06 }], temp: 'cold', hub: '광주권', dest: '서귀포시', time: '15:00' }];
+    const qs = [{ ...base, name: '한빛상회 (시연)' }, { ...base, name: '제주상사 (시연)', lines: [{ type: 'box', qty: 40, grade: 1 }], courier: 'etc', temp: 'cold', hub: '광주권', dest: '서귀포시', time: '15:00' }];
     memory = [...qs.map((q) => quote(q)).filter((r) => !r.error).map((r) => makeBooking(r, true)), ...memory]; saveBookings();
     bumpOps(); syncOverrides(); renderList();
     if (memory[0]) { $('b-id').value = memory[0].id; showBooking(memory[0].id); }
@@ -1444,16 +1648,19 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     $('b-code').textContent = b.id + (b.demo ? ' (시연)' : '');
     $('b-risk').className = 'badge ' + lv.cls; $('b-risk').textContent = lv.txt + ' ' + pct(c.p);
     $('b-status').textContent = now >= s.dep ? (now < s.arr ? '출항' : '도착') : (ov ? '결항재배정 · ' : bn.reason === 'late' ? '늦은 반입으로 이월 · ' : '') + bn.st;
-    $('b-qty').textContent = `${slotsTxt(b.mine)} · ${b.q.temp === 'cold' ? '냉장' : '상온'} · ${b.q.hub === '기타' ? '기타' : b.q.hub} → ${P.name} → 제주항 → ${b.q.dest}`;
+    const ms = b.intake && b.intake.measured;
+    $('b-qty').textContent = `${slotsTxt(b.mine)} · ${b.q.temp === 'cold' ? '냉장' : '상온'} · ${b.q.hub === '기타' ? '기타' : b.q.hub} → ${P.name} → 제주항 → ${b.q.dest}${ms ? ` · 입력 ${slotsTxt(b.mine)} → 실측 ${slotsTxt(ms)}${Math.abs(ms - b.mine) / b.mine > 0.1 ? ' (10% 넘게 차이)' : ''}` : ''}`;
     $('b-fare').textContent = won(b.fare) + ' (상한 보장)' + (bn.fare < b.fare ? ` · 바뀐 배편 기준 예상 ${won(bn.fare)}` : '');
     const fin = finalFareOf(b);
-    $('b-final').textContent = fin == null ? (now < s.dep ? '출항 후 확정' : '정산 계산 중') : won(fin) + (fin < b.fare ? ` (견적보다 ${won(b.fare - fin)} 적음)` : '');
+    $('b-refund').textContent = fin && fin.retDone ? `실제 환급 ${won(fin.act)} · 최종 운임 ${won(fin.fin)}` : `AI 예측 기반 보장 환급 ${won(b.guar || 0)} 반영됨 · 아래 진행 상황 참고`;
+    $('b-final').textContent = !fin ? (now < s.dep ? '귀로 배편 출항 후 확정' : '정산 계산 중') : fin.retDone ? won(fin.fin) + (fin.fin < b.fare ? ` (확정 견적보다 ${won(b.fare - fin.fin)} 적음 · 추가 환급)` : '') : `귀로 배편 출항 후 확정 · 지금은 ${won(fin.fin)}`;
     $('b-portname').innerHTML = P.name + ' ' + portTag(P);
     $('b-ship').textContent = s.ship;
     $('b-dep').textContent = fmtDT(s.dep);
     $('b-port').textContent = fmtDT(s.arr);
     $('b-dest').textContent = fmtDT(s.arr + Math.round((HANDOVER_H + DEST_HOURS[b.q.dest]) * 60)) + ' ' + b.q.dest;
     $('b-intake').innerHTML = intakeHtml(b, bn);
+    $('b-refund-box').innerHTML = refundBoxHtml(b, bn, fin);
     $('b-change').hidden = !ov && bn.reason !== 'late' && lv.cls !== 'high';
     if (ov) $('b-change').textContent = `${fmtDT(ov.prevDep)} ${ov.prevShip} 배편이 결항 처리되어 ${fmtDT(ov.dep)} ${ov.ship}로 재배정했습니다. 목적지 도착 예정과 반입 마감이 새 배편 기준으로 바뀌었습니다.`;
     else if (bn.reason === 'late') $('b-change').textContent = `알려 주신 도착 예정(${fmtDT(b.lateEta)})이 원래 배편의 반입 마감을 넘어 ${fmtDT(s.dep)} ${s.ship}로 자동 이월했습니다. 운임은 견적 ${won(b.fare)}을 넘지 않습니다.`;
@@ -1519,7 +1726,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const r = rng(hashStr('BS' + dk));
     let left = Math.round(total * 0.35), n = 0;
     while (left > 0) {
-      const v = Math.min(left, 1 + Math.floor(r() * 4)); left -= v; n++;
+      const v = Math.min(left, 1 + Math.floor(r() * 8)); left -= v; n++;
       mk('BS' + dk + '-' + String(n).padStart(2, '0'), r, Math.floor(r() * COMPANIES.length), DEFAULT_PORTS[1], v, r() < 0.3, d + 1020 - 30 * (1 + Math.floor(r() * 16)));
     }
   }
@@ -1527,7 +1734,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   const ops = Object.assign({ forced: [] }, store.get(OPS_KEY, {}));
   const saveOps = () => store.set(OPS_KEY, ops);
   let cache = null;
-  bumpOps = () => { cache = null; };
+  bumpOps = () => { cache = null; refundMemo.clear(); };
   const userOrders = () => memory.map((b) => {
     const P = P_BY[b.port];
     if (!P || !P.active) return null;
@@ -1628,6 +1835,32 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         else if (sA.ok) { assign[0].push(...A); carry.push(...B); }
         else carry.push(...items);
       }
+      // 빈 칸 최소화: 배편의 남는 칸 수(전체 % 12)가 기준 미만이면 덜 찬 트럭을 띄우지 않음.
+      // 이월을 허용하는 화물(예약 고객·이미 이월된 화물 제외)에서 작은 주문부터, 모자라면 한 주문의 일부 롤테이너만 떼어
+      // 정확히 남는 칸 수만큼 다음 날 첫 배편으로 넘김 → 오늘 떠나는 트럭은 모두 가득 참
+      if (SET.minFill > 0) {
+        const carriedIds = new Set(all.filter((x) => x.carried).map((x) => x.o.id)), U = (v) => Math.round(v * 4);
+        assign.forEach((list, i) => {
+          if (!sails[i].ok) return;
+          let need = list.reduce((a, x) => a + U(x.o.slots), 0) % (SLOTS * 4);
+          if (!need || need >= SET.minFill * SLOTS * 4) return;
+          const cand = list.filter((x) => !x.o.booking && !x.o.splitOf && !carriedIds.has(x.o.id)).sort((a, b) => a.o.slots - b.o.slots);
+          if (cand.reduce((a, x) => a + U(x.o.slots), 0) < need) return;
+          const keep = new Map(list.map((x) => [x, x]));
+          for (const x of cand) {
+            if (!need) break;
+            const w = U(x.o.slots);
+            if (w <= need) { keep.delete(x); carryOut.push({ o: x.o, fill: true }); need -= w; }
+            else {
+              const part = need / 4;
+              keep.set(x, { ...x, o: { ...x.o, slots: x.o.slots - part } });
+              carryOut.push({ o: { ...x.o, id: x.o.id + '-이월', slots: part, splitOf: x.o.id }, fill: true });
+              need = 0;
+            }
+          }
+          assign[i] = [...keep.values()];
+        });
+      }
       sails.forEach((sl, i) => packTrucks(key, sl, reefer, assign[i], placed));
       carry.forEach((x) => carryOut.push({ o: x.o }));
     }
@@ -1658,7 +1891,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     if (!s) { const dep = b.override ? b.override.dep : b.dep; s = sailingsOn(P, day0(dep)).find((x) => x.dep === dep) || sailingsAfter(P, dep)[0]; }
     const reason = b.override && b.override.dep === s.dep ? 'cancel' : s.dep !== b.dep ? (b.lateEta ? 'late' : 'replan') : '';
     let fare = b.fare;
-    if (s.dep !== b.dep) fare = Math.min(b.fare, r10(share(b.mine, q4(othersPred(s, b.q.temp).mean), truckCost(P, s.dep, b.q.driver || 0)).fare));
+    if (s.dep !== b.dep) { const sh2 = share(b.mine, q4(othersPred(s, b.q.temp).mean), truckCost(P, s.dep, b.q.driver || 0)); fare = Math.min(b.fare, r10(sh2.fare - refundFor(P, s, sh2, b.mine).guar)); }
     const ik = intakeOf(s.cutoff);
     let st = '반입 전', cls = 'need';
     if (b.intake) { st = '반입 완료'; cls = 'done'; }
@@ -1697,9 +1930,45 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     if (!$('booked').hidden) { const b = memory.find((x) => x.id === $('booked-id').textContent); if (b) $('booked-intake').innerHTML = intakeHtml(b, bookingNow(b)); }
     if (authed && location.hash === '#ops-daily') renderDaily();
   };
+  // 복화 환급 진행 (내 예약 조회): 지금 배편 기준 귀로편·예상 환급, 귀로 매칭 진행률
+  const refundBoxHtml = (b, bn, fin) => {
+    const P = bn.P, s = bn.s, now = nowMin();
+    const sh2 = share(b.mine, q4(othersPred(s, b.q.temp).mean), truckCost(P, s.dep, b.q.driver || 0));
+    const rf = refundFor(P, s, sh2, b.mine), guar = b.guar || 0, ret = rf.ret, retDone = !!(fin && fin.retDone);
+    const o = data().orders.find((x) => x.id === b.id), pl = o ? finalPlace(o, 'cur') : null, bh = backhaulAll();
+    const rts = pl ? pl.trucks.map((t) => bh.trucks.find((x) => x.id === t.id)).filter(Boolean) : [];
+    const loadNow = rts.reduce((a, t) => a + t.load, 0), minLd = rf.minLoad * Math.max(1, rts.length);
+    const stage = now < s.dep ? 0 : now < s.arr ? 1 : ret && now < ret.dep ? 2 : retDone ? 4 : 3;
+    const names = ['예약 (보장 환급 적용)', '제주행 출항', `귀로 화물 매칭 중${stage === 2 ? `<br>지금 ${slotsTxt(loadNow)} / 최소 ${num(minLd, 1)}칸` : ''}`, '귀로 출항', '환급 확정'];
+    const expAdd = Math.max(0, rf.exp - guar), maxAdd = Math.max(0, rf.max - guar);
+    const nums = retDone
+      ? `<div><span class="k">이미 받은 환급</span><b>${won(guar)}</b><span class="s">AI 예측 기반 보장 환급</span></div><div><span class="k">실제 환급</span><b>${won(fin.act)}</b><span class="s">${fin.act - guar > 5 ? `추가 환급 ${won(fin.act - guar)}` : '추가 환급 없음'}</span></div><div><span class="k">최종 운임</span><b>${won(fin.fin)}</b><span class="s">확정 견적 ${won(b.fare)}</span></div>`
+      : `<div><span class="k">이미 받은 환급</span><b>${won(guar)}</b><span class="s">AI 예측 기반 보장 환급 (확정 견적에 반영)</span></div><div><span class="k">앞으로 받을 예상 환급</span><b>${won10(expAdd)}</b><span class="s">평균 예측 기준 · 최대 ${won10(maxAdd)}</span></div><div><span class="k">환급 확정 시점</span><b>${ret ? fmtDT(ret.dep) : '—'}</b><span class="s">제주항 출항 귀로편 <span class="tag asm">가정</span></span></div>`;
+    const msg = retDone
+      ? (fin.act - guar <= 5 ? `귀로 화물이 없어 추가 환급은 없습니다. 확정 견적 ${won(b.fare)}으로 정산됩니다.` : `실제 환급 ${won(fin.act)} · 최종 운임 ${won(fin.fin)}`)
+      : `귀로편이 출항한 뒤 실제 환급이 확정됩니다.${bn.reason === 'cancel' ? ' 결항 재배정으로 귀로편과 예상 환급을 새 배편 기준으로 다시 계산했습니다.' : ''}`;
+    return `<div class="refund-box"><div class="card-head"><h3>복화 환급 진행</h3><span class="tag ai">AI 예측 기반</span></div><ol class="rsteps">${names.map((t, i) => `<li class="${i < stage ? 'past' : i === stage ? 'on' : ''}">${t}</li>`).join('')}</ol><div class="nums">${nums}</div><p class="small">${msg}</p></div>`;
+  };
+  let intakeOpen = null;
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-label],[data-late-open],[data-late-save],[data-intake]');
+    const t = e.target.closest('[data-label],[data-late-open],[data-late-save],[data-intake],[data-meas-save],[data-intake-undo]');
     if (!t) return;
+    if (t.dataset.measSave) {
+      // 반입 확인 + 합적 지점 실측 칸 수 → 정산·환급은 실측으로
+      const b = memory.find((x) => x.id === t.dataset.measSave), v = +((document.querySelector(`[data-meas-input="${t.dataset.measSave}"]`) || {}).value);
+      if (!b || !(v > 0)) return;
+      b.intake = { at: Date.now(), measured: v };
+      MEAS[b.id] = { slots: v, ratio: v / b.mine, at: Date.now() }; store.set(MEAS_KEY, MEAS);
+      intakeOpen = null; saveBookings(); bumpOps(); renderDaily();
+      return;
+    }
+    if (t.dataset.intakeUndo) {
+      const b = memory.find((x) => x.id === t.dataset.intakeUndo);
+      if (!b) return;
+      delete b.intake; delete MEAS[b.id]; store.set(MEAS_KEY, MEAS);
+      saveBookings(); bumpOps(); renderDaily();
+      return;
+    }
     if (t.dataset.label) printLabel(t.dataset.label);
     else if (t.dataset.lateOpen) { const box = document.querySelector(`[data-late-box="${t.dataset.lateOpen}"]`); if (box) box.hidden = !box.hidden; }
     else if (t.dataset.lateSave) {
@@ -1708,10 +1977,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       b.lateEta = parseDay(v.slice(0, 10)) + hm(v.slice(11, 16));
       saveBookings(); bumpOps(); syncOverrides(); refreshIntakeViews();
     } else if (t.dataset.intake) {
-      const b = memory.find((x) => x.id === t.dataset.intake);
-      if (!b) return;
-      if (b.intake) delete b.intake; else b.intake = { at: Date.now() };
-      saveBookings(); renderDaily();
+      intakeOpen = intakeOpen === t.dataset.intake ? null : t.dataset.intake;
+      renderDaily();
     }
   });
   const retIntakeHtml = (q, x) => {
@@ -1724,7 +1991,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
   const outStatus = (o) => {
     const cur = finalPlace(o, 'cur'), base = finalPlace(o, 'base'), now = nowMin();
-    const re = base && (!cur || cur.sail.s.dep !== base.sail.s.dep) ? '결항 재배정 · ' : '';
+    const re = base && (!cur || cur.sail.s.dep !== base.sail.s.dep) ? '결항 재배정 · ' : cur && cur.carried && keyOf(cur.sail.s.dep) > keyOf(o.firstDep) ? '빈 칸 최소화로 다음 날 이월 · ' : '';
     if (!cur) return { st: '매칭 필요', why: re + '탈 배 없음 · 다음 배편 대기', pl: null };
     const ids = cur.trucks.map((t) => t.id).join(', '), minLoad = Math.min(...cur.trucks.map((t) => t.load));
     if (now >= cur.sail.s.cutoff) return { st: '매칭 완료', why: re + `${ids} 확정 (마감 지남)`, pl: cur };
@@ -1743,7 +2010,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const addE = (u, v, cap, cost) => { E.push({ v, cap, cost, flow: 0 }); g[u].push(E.length - 1); E.push({ v: u, cap: 0, cost: -cost, flow: 0 }); g[v].push(E.length - 1); };
     edges.forEach(([u, v, c, w]) => addE(u, v, c, w));
     let flow = 0, cost = 0;
-    for (let it = 0; it < 500; it++) {
+    for (let it = 0; it < 20000; it++) {
       const dist = new Array(n).fill(Infinity), inq = new Array(n).fill(false), pe = new Array(n).fill(-1);
       dist[src] = 0; const q = [src]; inq[src] = true;
       while (q.length) { const u = q.shift(); inq[u] = false; for (const ei of g[u]) { const e = E[ei]; if (e.cap - e.flow > 0 && dist[u] + e.cost < dist[e.v] - 1e-9) { dist[e.v] = dist[u] + e.cost; pe[e.v] = ei; if (!inq[e.v]) { q.push(e.v); inq[e.v] = true; } } } }
@@ -1785,8 +2052,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const order = [...groups.entries()].sort((a, b) => a[1][0].ret.dep - b[1][0].ret.dep);
     let flowStats = { runs: 0, nodes: 0, edges: 0 };
     for (const [, gt] of order) {
-      const P = gt[0].P, dep = gt[0].ret.dep, cutoff = gt[0].ret.cutoff, { L, E } = retFare(P, dep);
-      const minLoad = (L - E) / SET.genRate;
+      const P = gt[0].P, dep = gt[0].ret.dep, cutoff = gt[0].ret.cutoff;
+      const minLoad = retFare(P, dep).inc / SET.genRate; // 칸당 상한 g로 받아도 늘어난 비용을 메울 수 있는 최소 칸 수
       let live = gt.slice();
       for (let round = 0; round < 4; round++) {
         const cand = reqs.filter((q) => q.left > 1e-9 && q.readyT <= cutoff - Math.round(MERGE_H * 60) &&q.readyT >= cutoff - 3 * DAY && (q.port === 'auto' || q.port === P.id));
@@ -1822,8 +2089,16 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       else if (!q.tried) q.reason = '준비 시각이 맞는 귀로 배편 없음 · 다음 배편 대기';
       else if (q.tried >= 3 && !q.reason.includes('손해')) q.reason = '3일 넘게 못 실음 · 일반화물(선내 하차) 전환 검토';
     });
-    // 육지행 화주 운임: 늘어난 도선료(적재 − 공차)를 실린 칸 비율로 + 하역비
-    trucks.forEach((t) => { const { L, E } = retFare(t.P, t.ret.dep); t.L = L; t.E = E; t.recover = Math.max(0, Math.min(SLOTS - t.load, t.outLoad / SET.emptyPerSlot)); t.pieces.forEach((p) => { p.fare = (L - E) * p.slots / t.load + HANDLING * p.slots; }); });
+    // 육지행 화주 운임: K = (L − E) + α × E 를 실린 칸 비율로 (칸당 상한 g) + 하역비
+    // 회수액 R = 화주 납부 합(하역비 제외) − (L − E) → 그 트럭으로 제주에 온 고객에게 환급
+    trucks.forEach((t) => {
+      const rf = retFare(t.P, t.ret.dep), K = rf.inc + SET.alpha * rf.E;
+      Object.assign(t, { L: rf.L, E: rf.E, inc: rf.inc, K, needCheck: rf.needCheck, capped: t.load > 0 && K / t.load > SET.genRate + 1e-9 });
+      t.recover = Math.max(0, Math.min(SLOTS - t.load, t.outLoad / SET.emptyPerSlot));
+      t.pieces.forEach((p) => { p.base = Math.min(K * p.slots / t.load, SET.genRate * p.slots); p.fare = p.base + HANDLING * p.slots; });
+      t.paid = t.pieces.reduce((a, p) => a + p.base, 0);
+      t.R = t.pieces.length ? Math.max(0, t.paid - rf.inc) : 0;
+    });
     D.bh = { trucks, reqs, flowStats };
     return D.bh;
   };
@@ -1857,22 +2132,33 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   const settleDay = (key) => {
     const D = data();
     if (D.settle.has(key)) return D.settle.get(key);
-    const now = nowMin(), groups = [], trucksChk = { n: 0, ok: 0 }, shapChk = { n: 0, ok: 0 };
+    const now = nowMin(), groups = [], trucksChk = { n: 0, ok: 0 }, shapChk = { n: 0, ok: 0 }, refChk = { n: 0, ok: 0 }, hit = { n: 0, ok: 0 };
+    const bhById = new Map(backhaulAll().trucks.map((t) => [t.id, t]));
+    let recovered = 0;
     for (const P of activePorts()) for (const sl of planDay(P.id, key, 'cur').sailings) {
       if (!sl.ok || sl.s.dep > now || !sl.trucks.length) continue;
-      const fare = truckCost(P, sl.s.dep), per = new Map();
+      const fare = truckCost(P, sl.s.dep), per = new Map(), rr = refundRate(P, sl.s);
       for (const t of sl.trucks) {
         const adj = t.pieces.map((p) => { const m = MEAS[p.o.id]; return m ? p.slots * m.slots / p.o.slots : p.slots; });
         const tot = adj.reduce((a, b) => a + b, 0);
-        let sum = 0;
+        // 복화 환급: 이 트럭이 귀로에 회수한 R을 이 트럭으로 제주에 온 고객에게 칸 비율로
+        const bt = bhById.get(t.id), retDone = !!(bt && bt.ret.dep <= now), R = retDone ? bt.R : 0;
+        if (retDone) { recovered += R; hit.n++; if (R >= rr.RLo - 0.5) hit.ok++; }
+        let sum = 0, rsum = 0;
         t.pieces.forEach((p, k) => {
           const sh = fare * adj[k] / tot; sum += sh;
-          const e = per.get(p.o.customer) || { name: p.o.customer, src: p.o.source, slots: { true: 0, false: 0 }, share: 0, orders: new Map(), quoted: 0, meas: false };
+          const e = per.get(p.o.customer) || { name: p.o.customer, src: p.o.source, slots: { true: 0, false: 0 }, share: 0, orders: new Map(), quoted: 0, meas: false, guar: 0, act: 0, pending: false, over: 0 };
+          // 실측이 입력보다 크면 초과 칸만 칸당 요금(트럭 왕복 비용 ÷ 실린 칸 + 하역비)으로 추가
+          const mm = MEAS[p.o.id];
+          if (mm && mm.slots > p.o.slots) e.over += (adj[k] - p.slots) * (fare / tot + HANDLING);
+          e.guar += rr.RLo * adj[k] / tot;
+          if (retDone) { e.act += R * adj[k] / tot; rsum += R * adj[k] / tot; } else e.pending = true;
           e.slots[t.reefer] += adj[k]; e.share += sh; e.orders.set(p.o.id, (e.orders.get(p.o.id) || 0) + adj[k]);
           if (MEAS[p.o.id]) e.meas = Math.abs(MEAS[p.o.id].slots - p.o.slots) / p.o.slots > 0.1 ? 'diff' : e.meas || 'ok';
           per.set(p.o.customer, e);
         });
         trucksChk.n++; if (Math.abs(sum - fare) < 0.5) trucksChk.ok++;
+        if (retDone) { refChk.n++; if (Math.abs(rsum - R) < 0.5) refChk.ok++; }
       }
       const list = [...per.values()];
       list.forEach((e) => { e.total = e.slots.true + e.slots.false; e.solo = (Math.ceil(e.slots.true / SLOTS - 1e-9) + Math.ceil(e.slots.false / SLOTS - 1e-9)) * fare; });
@@ -1889,14 +2175,25 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         e.quoted = 0;
         for (const [oid] of e.orders) { const o = D.orders.find((x) => x.id === oid); if (o && o.quoted) e.quoted += o.quoted; }
         e.capLoss = Math.max(0, e.share - e.solo);
+        e.retDone = !e.pending;
         groups.push({ key, sail: sl.s, ...e, exact: sp.exact });
       });
     }
-    const res = { groups, trucksChk, shapChk };
+    const res = { groups, trucksChk, shapChk, refChk, hit, recovered };
     D.settle.set(key, res);
     return res;
   };
-  const billOf = (g, method) => { const b = method === 'shap' ? g.shap : g.vol; return g.quoted ? Math.min(b, g.quoted) : b; };
+  // 왕복 기준(base) → 확정 견적(conf = base − 보장 환급, 예약 견적 상한) → 최종(fin = min(base − 실제 환급, conf))
+  const finalOf = (g, method) => {
+    const base = method === 'shap' ? g.shap : g.vol;
+    let conf = Math.max(0, base - g.guar);
+    const quoteCut = g.quoted && g.quoted < conf ? conf - g.quoted : 0;
+    if (g.quoted) conf = Math.min(conf, g.quoted);
+    // 실측 ≤ 입력: 실측으로 계산(확정 견적보다 덜 냄) / 실측 > 입력: 입력 칸까지 확정 견적 보장 + 초과 칸만 추가
+    const fin0 = g.retDone ? Math.min(Math.max(0, base - g.act), conf) : conf, fin = g.quoted ? fin0 + (g.over || 0) : fin0;
+    return { base, conf, fin, guarLoss: g.retDone ? Math.max(0, Math.min(g.guar, base) - g.act) : 0, extra: g.retDone ? Math.max(0, g.act - g.guar) : 0, quoteCut };
+  };
+  const billOf = (g, method) => finalOf(g, method).fin;
   finalFareOf = (b) => {
     const D = data(), o = D.orders.find((x) => x.id === b.id);
     if (!o) return null;
@@ -1904,7 +2201,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     if (!pl || pl.sail.s.dep > nowMin()) return null;
     const g = settleDay(keyOf(pl.sail.s.dep)).groups.find((x) => x.orders.has(b.id));
     if (!g) return null;
-    return r10(billOf(g, 'vol') * g.orders.get(b.id) / g.total);
+    const f = g.orders.get(b.id) / g.total, fo = finalOf(g, 'vol');
+    return { fin: r10(fo.fin * f), act: r10(g.act * f), retDone: g.retDone, over: r10((g.over || 0) * f) };
   };
 
   // ---- 차트 도구 ----
@@ -1996,9 +2294,9 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const rt = bh.trucks.filter((t) => keyOf(t.jeju) === opsDate && (opsPort === 'all' || t.P.id === opsPort)), rtLoad = sum(rt, (t) => t.load);
     const maxP = sails.reduce((a, sl) => (sl.p > a.p ? sl : a), { p: -1 });
     $('a-pipe').innerHTML = [
-      ['①', '물량 예측 + 공동적재', `마감 전 추가 예상 +${num(sum(fc, (x) => x.add), 1)}칸 (90% +${num(sum(fc, (x) => x.addHi), 1)}칸) · 트럭 ${trucks.length}대`, `GBM 회귀 MAPE ${pct(AI.volMAPE)} · ${solves.some((s) => s.method === 'MILP') ? 'MILP' : '전수 탐색'} 배정`],
+      ['①', '물량 예측 + 공동적재', `마감 전 추가 예상 +${num(sum(fc, (x) => x.add), 1)}칸 (90% +${num(sum(fc, (x) => x.addHi), 1)}칸) · 트럭 ${trucks.length}대 · 빈 칸 ${slotsTxt(trucks.length * SLOTS - loadSum)}`, `GBM 회귀 MAPE ${pct(AI.volMAPE)} · ${solves.some((s) => s.method === 'MILP') ? 'MILP' : '전수 탐색'} 배정`],
       ['②', '결항 예측 + 재배정', `배편 ${sails.length}편 중 사용 중지 ${off.length}편${maxP.s ? ` · 최고 ${pct(maxP.p)}` : ''}`, `GBM 분류 AUC ${num(AI.cxEvalGB.auc, 2)}`],
-      ['③', '복화 매칭', rt.length ? `귀로 트럭 ${rt.length}대 · 공차율 100% → ${pct(1 - rtLoad / (rt.length * SLOTS))}` : '이날 제주 도착 트럭 없음', '최소비용 흐름'],
+      ['③', '복화 매칭 + 환급', (rt.length ? `귀로 트럭 ${rt.length}대 · 공차율 100% → ${pct(1 - rtLoad / (rt.length * SLOTS))}` : '이날 제주 도착 트럭 없음') + ` · 보장 환급 적중률 ${(() => { let n = 0, ok = 0; data().keys.filter((k) => parseDay(k) <= TODAY0).forEach((k) => { const h = settleDay(k).hit; n += h.n; ok += h.ok; }); return n ? pct(ok / n) : '—'; })()}`, '최소비용 흐름 · 육지행 물량 예측(분위수)'],
       ['④', '공정 정산', trucks.length ? `평균 적재율 ${pct(loadSum / (trucks.length * SLOTS))} · 견적 상한 보장` : '—', '부피 비율 + 샤플리'],
     ].map(([n, t, v, m]) => `<div class="pstep"><span class="pno">${n}</span><b>${t}</b><span class="pv">${v}</span><span class="pm">${m}</span></div>`).join('');
     const cmax = Math.max(1, soloTrucks, trucks.length);
@@ -2009,7 +2307,11 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     $('a-ret-table').innerHTML = rets.filter((x) => !fr || x.st === fr).slice(0, 60).map(({ q, st, why }) => `<tr><td>${esc(q.id)}</td><td>${srcTag(q.source)}</td><td>${esc(q.shipper)}</td><td>${q.hub}${q.port === 'auto' ? '' : ' · ' + P_BY[q.port].name}</td><td>${slotsTxt(q.slots)}</td><td>${q.reefer ? '냉장' : '상온'}</td><td>${fmtTime(q.readyT)}</td><td>${stPill(st)}</td><td class="wrapcell">${why}</td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">해당하는 요청이 없습니다.</td></tr>';
     // 반입 예정 (예약 고객)
     const ib = memory.map((b) => ({ b, bn: bookingNow(b) })).filter((x) => x.bn.s.dep >= now - DAY).sort((a, b) => a.bn.ik.close - b.bn.ik.close);
-    $('a-intake').innerHTML = ib.map(({ b, bn }) => `<tr><td>${esc(b.id)} ${srcTag(b.demo ? '가상' : '실제')}</td><td>${esc(b.name)}</td><td>${esc(bn.depot.name)}${bn.depot.asm ? ' <span class="tag asm">가정</span>' : ''}</td><td>${fmtDT(bn.ik.open)}</td><td><b>${fmtDT(bn.ik.close)}</b></td><td>${esc(bn.s.ship)} ${fmtTime(bn.s.dep)}${bn.reason ? ` <span class="tag asm">${bn.reason === 'cancel' ? '결항 재배정' : bn.reason === 'late' ? '늦은 반입 이월' : '배편 조정'}</span>` : ''}</td><td>${b.lateEta ? `늦어짐 · ${fmtDT(b.lateEta)} 도착 예상` : '—'}</td><td><span class="pill ${bn.cls}">${bn.st}</span></td><td><button type="button" class="ghost sm" data-intake="${esc(b.id)}">${b.intake ? '확인 취소' : '반입 확인'}</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">반입 예정인 예약이 없습니다. 고객 화면 내 예약 조회에서 시연용 예약 2건을 불러올 수 있습니다.</td></tr>';
+    $('a-intake').innerHTML = ib.map(({ b, bn }) => `<tr><td>${esc(b.id)} ${srcTag(b.demo ? '가상' : '실제')}</td><td>${esc(b.name)}</td><td>${esc(bn.depot.name)}${bn.depot.asm ? ' <span class="tag asm">가정</span>' : ''}</td><td>${fmtDT(bn.ik.open)}</td><td><b>${fmtDT(bn.ik.close)}</b></td><td>${esc(bn.s.ship)} ${fmtTime(bn.s.dep)}${bn.reason ? ` <span class="tag asm">${bn.reason === 'cancel' ? '결항 재배정' : bn.reason === 'late' ? '늦은 반입 이월' : '배편 조정'}</span>` : ''}</td><td>${b.lateEta ? `늦어짐 · ${fmtDT(b.lateEta)} 도착 예상` : '—'}</td><td><span class="pill ${bn.cls}">${bn.st}</span></td><td class="wrapcell">${b.intake
+      ? `<span class="small">실측 <b>${slotsTxt(b.intake.measured || b.mine)}</b> / 입력 ${slotsTxt(b.mine)}${b.intake.measured && Math.abs(b.intake.measured - b.mine) / b.mine > 0.1 ? ' <span class="tag asm">실측 차이</span>' : ''}</span> <button type="button" class="link" data-intake-undo="${esc(b.id)}">확인 취소</button>`
+      : intakeOpen === b.id
+        ? `<span class="row"><input type="number" data-meas-input="${esc(b.id)}" value="${b.mine}" min="0.25" step="0.25" style="width:84px" aria-label="실측 칸 수">칸 <button type="button" class="primary" style="width:auto;padding:7px 12px;font-size:13px" data-meas-save="${esc(b.id)}">실측 저장</button><a href="#ops-settle" class="small">사진으로 측정</a></span>`
+        : `<button type="button" class="ghost sm" data-intake="${esc(b.id)}">반입 확인</button>`}</td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">반입 예정인 예약이 없습니다. 고객 화면 내 예약 조회에서 시연용 예약 2건을 불러올 수 있습니다.</td></tr>';
   };
   // 숫자 칸 누르기: 표 거르기 / 관련 표로 이동
   document.addEventListener('click', (e) => {
@@ -2070,7 +2372,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     });
     const late = plan.sailings.length > 1 ? plan.orders.filter((x) => !x.carried && !x.firstOk) : [];
     const bumped = plan.orders.filter((x) => x.carried || (x.firstOk && !plan.sailings[0].ok && plan.placed.has(x.o.id)));
-    alerts.push(`<p class="notice">${late.length ? `첫 배편 마감 뒤 출발항에 도착해 다음 배편으로 간 주문 <b>${late.length}건</b>` : '마감을 놓친 주문 없음'}${bumped.length ? ` · 결항으로 다른 배편에 탄 주문 <b>${bumped.length}건</b>` : ''}${plan.carryOut.length ? ` · 탈 배가 없어 다음 날로 넘긴 주문 <b>${plan.carryOut.length}건</b>` : ''} · ${portTag(P)}</p>`);
+    alerts.push(`<p class="notice">${late.length ? `첫 배편 마감 뒤 출발항에 도착해 다음 배편으로 간 주문 <b>${late.length}건</b>` : '마감을 놓친 주문 없음'}${bumped.length ? ` · 결항으로 다른 배편에 탄 주문 <b>${bumped.length}건</b>` : ''}${plan.carryOut.some((x) => !x.fill) ? ` · 탈 배가 없어 다음 날로 넘긴 주문 <b>${plan.carryOut.filter((x) => !x.fill).length}건</b>` : ''}${plan.carryOut.some((x) => x.fill) ? ` · <b>빈 칸 최소화</b>로 덜 찬 트럭을 띄우지 않고 다음 날 첫 배편으로 넘긴 주문 <b>${plan.carryOut.filter((x) => x.fill).length}건</b>(${slotsTxt(plan.carryOut.filter((x) => x.fill).reduce((a, x) => a + x.o.slots, 0))})` : ''}${plan.orders.some((x) => x.carried) ? ` · 전날에서 넘어온 주문 <b>${plan.orders.filter((x) => x.carried).length}건</b>` : ''} · ${portTag(P)}</p>`);
     $('p-alerts').innerHTML = alerts.join('');
     const flows = new Map();
     for (const x of plan.orders) {
@@ -2083,7 +2385,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       const lv = riskLevel(sl.p), fare = truckCost(P, sl.s.dep), load = sl.trucks.reduce((a, t) => a + t.load, 0);
       const btn = sl.ok || sl.forced ? `<button type="button" class="ghost sm" data-cancel="${P.id}@${sl.s.dep}">${sl.forced ? '결항 처리 취소' : '이 배편 결항 처리'}</button>` : '<span class="small muted">기준값 초과로 자동 제외</span>';
       const rows = sl.trucks.map((t) => { const who = new Map(); t.pieces.forEach((p) => who.set(p.o.customer, (who.get(p.o.customer) || 0) + p.slots)); return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td class="wrapcell">${[...who].map(([c, v]) => esc(c) + ' ' + slotsTxt(v)).join(', ')}</td><td>${meter(t.load)}</td><td>${[...new Set(t.pieces.map((p) => p.o.dest))].join('·')}</td></tr>`; }).join('');
-      return `<section class="card${sl.ok ? '' : ' off'}"><div class="sail-head"><div><h3>${sl.s.ship} · ${sl.s.label} 배편</h3><div class="meta">${fmtDT(sl.s.dep)} ${P.name} 출항 → ${fmtDT(sl.s.arr)} 제주항 · 마감 ${fmtDT(sl.s.cutoff)}${sl.s.st !== 'real' ? ' (도착·마감 가정)' : ''}</div></div><div class="row"><span class="badge ${lv.cls}">${lv.txt} ${pct(sl.p)}</span><span class="pill ${sl.ok ? 'ok' : 'off'}">${sl.ok ? '운항 예정' : '사용 중지'}</span></div></div><p class="small muted">AI 결항 원인: ${sl.c.whyTxt}</p><div class="row" style="justify-content:space-between">${btn}<span class="small muted">트럭 ${sl.trucks.length}대 · ${slotsTxt(load)} · 도선료 합 ${won(sl.trucks.length * fare)}</span></div>${rows ? `<div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>실린 주문</th><th>적재율</th><th>목적지</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="empty-note">배정된 트럭이 없습니다.</p>'}</section>`;
+      return `<section class="card${sl.ok ? '' : ' off'}"><div class="sail-head"><div><h3>${sl.s.ship} · ${sl.s.label} 배편</h3><div class="meta">${fmtDT(sl.s.dep)} ${P.name} 출항 → ${fmtDT(sl.s.arr)} 제주항 · 마감 ${fmtDT(sl.s.cutoff)}${sl.s.st !== 'real' ? ' (도착·마감 가정)' : ''}</div></div><div class="row"><span class="badge ${lv.cls}">${lv.txt} ${pct(sl.p)}</span><span class="pill ${sl.ok ? 'ok' : 'off'}">${sl.ok ? '운항 예정' : '사용 중지'}</span></div></div><p class="small muted">AI 결항 원인: ${sl.c.whyTxt}</p><div class="row" style="justify-content:space-between">${btn}<span class="small muted">트럭 ${sl.trucks.length}대 · ${slotsTxt(load)} · <b>빈 칸 ${slotsTxt(sl.trucks.length * SLOTS - load)}</b>${sl.trucks.length ? ` (적재율 ${pct(load / (sl.trucks.length * SLOTS))})` : ''} · 도선료 합 ${won(sl.trucks.length * fare)}</span></div>${rows ? `<div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>실린 주문</th><th>적재율</th><th>목적지</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="empty-note">배정된 트럭이 없습니다.</p>'}</section>`;
     }).join('');
     const D = data(), prevKey = addDays(key, -1);
     const affected = D.orders.filter((o) => o.port === P.id && [key, prevKey].includes(keyOf(o.firstDep))).map((o) => ({ o, b: finalPlace(o, 'base'), c: finalPlace(o, 'cur') })).filter((x) => x.b && (!x.c || x.c.sail.s.dep !== x.b.sail.s.dep));
@@ -2121,24 +2423,24 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const trucks = bh.trucks.filter((t) => keyOf(t.jeju) === opsDate);
     const cap = trucks.length * SLOTS, matched = trucks.reduce((a, t) => a + t.load, 0);
     const loaded = trucks.filter((t) => t.pieces.length), emptyT = trucks.filter((t) => !t.pieces.length);
-    const recov = loaded.reduce((a, t) => a + (t.L - t.E), 0);
+    const recov = loaded.reduce((a, t) => a + t.R, 0);
     const reqs = bh.reqs.filter((q) => keyOf(q.readyT) === opsDate), carried = bh.reqs.filter((q) => keyOf(q.readyT) < opsDate && q.got.some((g) => keyOf(g.t.jeju) === opsDate));
     $('bk-mods').innerHTML = [
       modCard('③', '복화 매칭', '육지행 요청(칸·온도·준비 시각·희망 항구) × 귀로 트럭 빈 칸 → 매칭', '최소비용 흐름 (연속 최단경로)', `이날 귀로 공차율 100% → ${cap ? pct(1 - matched / cap) : '—'} · 누적 풀이 ${bh.flowStats.runs}회 (노드 ${bh.flowStats.nodes} · 간선 ${bh.flowStats.edges})`, '브라우저에서 직접 구현 · 대기 오래된 요청 우선', 'OR-Tools 최소비용 흐름'),
       modCard('③', '육지행 물량 예측', '월·요일·공휴일·반출 감귤·채소 지수 → 일별 육지행 칸 수', '그래디언트 부스팅 회귀 (①과 같은 코드)', `MAPE ${pct(AI.rqMAPE)}`, '1년치 가상 요청으로 학습', 'LightGBM'),
-      modCard('③', '최소 적재 기준', '귀로 화물 수입 vs 늘어난 도선료', `일반화물 칸당 ${won(SET.genRate)}(가정)보다 비싸지면 공차 귀로`, `목포 기준 ${num((retFare(P_BY.mokpo, now).L - retFare(P_BY.mokpo, now).E) / SET.genRate, 2)}칸 이상 실려야 출발`, '트럭을 빼고 흐름을 다시 풂', '실시간 요율 연동'),
+      modCard('③', '최소 적재 기준 · 회수액', `화주 납부 K = (L − E) + 공차 분담률 ${pct(SET.alpha)} × E, 칸당 상한 ${won(SET.genRate)} <span class="tag asm">가정</span>`, '회수액 R = 납부 합 − (L − E) → 제주행 고객 환급', `목포 기준 ${num(retFare(P_BY.mokpo, TODAY0 + DAY + 60).inc / SET.genRate, 2)}칸 이상 실려야 출발 · 보장 환급 적중률 ${(() => { let n = 0, ok = 0; data().keys.filter((k) => parseDay(k) <= TODAY0).forEach((k) => { const h = settleDay(k).hit; n += h.n; ok += h.ok; }); return n ? pct(ok / n) : '—'; })()}`, 'R < 0 이면 트럭을 빼고 흐름을 다시 풂', '실시간 요율 연동'),
     ].join('');
     $('bk-kpis').innerHTML = [
       ['귀로 트럭', trucks.length + '대', `냉장 ${trucks.filter((t) => t.reefer).length} · 상온 ${trucks.filter((t) => !t.reefer).length}`],
       ['매칭된 칸', slotsTxt(matched), `이 날 준비 요청 ${slotsTxt(reqs.reduce((a, q) => a + q.slots, 0))} · 이월분 ${carried.length}건 포함`],
       ['귀로 공차율', `100%<span class="arrow">→</span>${cap ? pct(1 - matched / cap) : '—'}`, '매칭 전 → 매칭 후 (빈 칸 비율)'],
-      ['복화로 회수한 도선료', won(recov), `공차 귀로 ${emptyT.length}대 · 공차 비용 ${won(emptyT.reduce((a, t) => a + t.E, 0))}`],
+      ['회수액 (제주행 고객 환급 재원)', won(recov), `공차 귀로 ${emptyT.length}대 · 공차 비용 ${won(emptyT.reduce((a, t) => a + t.E, 0))}`],
     ].map(([k, v, s], i) => kpi([k, v, s, '', 'data-scroll="bk-truck-sec"'])).join('');
     $('bk-table').innerHTML = trucks.map((t) => {
       const goods = t.pieces.map((p) => `${esc(p.q.shipper)} ${slotsTxt(p.slots)}${keyOf(t.ret.cutoff) > keyOf(p.q.readyT) ? ' <span class="tag asm">이월</span>' : ''}${p.q.source === '실제' ? ' ' + srcTag('실제') : ''}`).join(', ');
-      const net = t.pieces.length ? t.L - t.pieces.reduce((a, p) => a + p.fare - HANDLING * p.slots, 0) : t.E;
-      return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td>제주항 → ${t.P.name}</td><td>${fmtDT(t.ret.dep)} <span class="tag asm">가정</span></td><td class="wrapcell">${goods || `<span class="muted">공차${t.dropped ? ' · 실으면 손해라 공차 귀로' : ''}</span>`}</td><td>${meter(t.load)}</td><td>${slotsTxt(Math.round(t.recover * 4) / 4)}</td><td>공차였다면 ${won(t.E)} → ${won(net)}</td></tr>`;
-    }).join('') || '<tr><td colspan="8" class="empty-note">이날 제주항에 도착하는 트럭이 없습니다.</td></tr>';
+      const note = [t.capped ? `칸당 상한 ${won(SET.genRate)} 적용` : '', !t.pieces.length ? (t.dropped ? '실으면 손해라 공차 귀로' : '공차 귀로') : '', t.needCheck ? '<span class="tag asm">공휴일 공차 요금 확인 필요</span>' : ''].filter(Boolean).join(' · ');
+      return `<tr><td>${t.id}</td><td>${t.reefer ? '냉장' : '상온'}</td><td>제주항 → ${t.P.name}</td><td>${fmtDT(t.ret.dep)} <span class="tag asm">가정</span></td><td class="wrapcell">${goods || '<span class="muted">공차</span>'}</td><td>${meter(t.load)}</td><td>${won(t.L)} / ${won(t.E)}</td><td>${t.pieces.length ? won(t.paid) : '—'}</td><td><b>${t.pieces.length ? won(t.R) : '0원'}</b></td><td class="wrapcell">${note || '—'}</td><td>${slotsTxt(Math.round(t.recover * 4) / 4)}</td></tr>`;
+    }).join('') || '<tr><td colspan="11" class="empty-note">이날 제주항에 도착하는 트럭이 없습니다.</td></tr>';
     const waits = bh.reqs.filter((q) => q.left > 1e-9 && keyOf(q.readyT) <= opsDate && keyOf(q.readyT) >= addDays(opsDate, -3));
     $('bk-wait').innerHTML = waits.map((q) => `<tr><td>${esc(q.id)} ${srcTag(q.source)}</td><td>${esc(q.shipper)}</td><td>${slotsTxt(q.left)}${q.left < q.slots ? ` / ${slotsTxt(q.slots)}` : ''}</td><td>${q.reefer ? '냉장' : '상온'}</td><td>${q.hub}${q.port === 'auto' ? '' : ' · ' + P_BY[q.port].name}</td><td>${fmtDT(q.readyT)}</td><td>${q.reason || '다음 귀로 배편 대기'}</td><td>${(q.reason || '').includes('전환') ? '일반화물 검토' : '다음 귀로 배편 후보로 넘김'}</td></tr>`).join('') || '<tr><td colspan="8" class="empty-note">대기 중인 요청이 없습니다.</td></tr>';
     const past = data().keys.filter((k) => parseDay(k) < TODAY0);
@@ -2155,22 +2457,24 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   // ---- 화면 D: 정산 ----
   let settleCache = null;
   const settlePeriod = (keys) => {
-    const cust = new Map(), lines = [], chk = { n: 0, ok: 0 }, sChk = { n: 0, ok: 0 }, method = val('smethod');
-    let quoteLoss = 0, capLoss = 0, totSlots = 0, totCost = 0, totSolo = 0, exactAll = true;
+    const cust = new Map(), lines = [], chk = { n: 0, ok: 0 }, sChk = { n: 0, ok: 0 }, rChk = { n: 0, ok: 0 }, hit = { n: 0, ok: 0 }, method = val('smethod');
+    let quoteLoss = 0, capLoss = 0, guarLoss = 0, paid = 0, recovered = 0, totSlots = 0, totCost = 0, totSolo = 0, exactAll = true;
     for (const key of keys) {
       const st = settleDay(key);
-      chk.n += st.trucksChk.n; chk.ok += st.trucksChk.ok; sChk.n += st.shapChk.n; sChk.ok += st.shapChk.ok;
+      chk.n += st.trucksChk.n; chk.ok += st.trucksChk.ok; sChk.n += st.shapChk.n; sChk.ok += st.shapChk.ok; rChk.n += st.refChk.n; rChk.ok += st.refChk.ok; hit.n += st.hit.n; hit.ok += st.hit.ok;
+      recovered += st.recovered;
       for (const g of st.groups) {
-        const bill = billOf(g, method), uncapped = method === 'shap' ? g.shap : g.vol;
-        quoteLoss += Math.max(0, uncapped - bill); capLoss += g.capLoss; exactAll = exactAll && g.exact;
+        const f = finalOf(g, method);
+        quoteLoss += f.quoteCut; capLoss += g.capLoss; guarLoss += f.guarLoss; paid += g.retDone ? g.act : 0; exactAll = exactAll && g.exact;
         totSlots += g.total; totCost += g.share + HANDLING * g.total; totSolo += g.solo;
-        lines.push([key, sailName(g.sail), g.name, g.src, g.total, Math.round(g.vol), Math.round(g.shap), g.solo, Math.round(bill), g.quoted ? Math.round(g.quoted) : '', g.meas === 'diff' ? '실측 차이' : '']);
-        const c = cust.get(g.name) || { name: g.name, src: g.src, sail: 0, slots: 0, vol: 0, shap: 0, solo: 0, bill: 0, quoted: 0, meas: '' };
-        c.sail++; c.slots += g.total; c.vol += g.vol; c.shap += g.shap; c.solo += g.solo; c.bill += bill; if (g.quoted) c.quoted += g.quoted; if (g.meas === 'diff') c.meas = '실측 차이'; else if (g.meas === 'ok' && !c.meas) c.meas = '실측 반영';
+        lines.push([key, sailName(g.sail), g.name, g.src, g.total, Math.round(g.vol), Math.round(g.shap), Math.round(g.guar), g.retDone ? Math.round(g.act) : '', Math.round(f.conf), Math.round(f.fin), g.solo, g.quoted ? Math.round(g.quoted) : '', g.meas === 'diff' ? '실측 차이' : '']);
+        const c = cust.get(g.name) || { name: g.name, src: g.src, sail: 0, slots: 0, vol: 0, shap: 0, base: 0, guar: 0, act: 0, pending: 0, solo: 0, bill: 0, quoted: 0, meas: '' };
+        c.sail++; c.slots += g.total; c.vol += g.vol; c.shap += g.shap; c.base += f.base; c.guar += g.guar; c.act += g.retDone ? g.act : 0; if (!g.retDone) c.pending++; c.solo += g.solo; c.bill += f.fin; if (g.quoted) c.quoted += g.quoted; c.over = (c.over || 0) + (g.over || 0);
+        if (g.meas === 'diff') c.meas = '실측 차이'; else if (g.meas === 'ok' && !c.meas) c.meas = '실측 반영';
         cust.set(g.name, c);
       }
     }
-    return { cust: [...cust.values()].sort((a, b) => b.bill - a.bill), lines, chk, sChk, quoteLoss, capLoss, totSlots, totCost, totSolo, exactAll };
+    return { cust: [...cust.values()].sort((a, b) => b.bill - a.bill), lines, chk, sChk, rChk, hit, quoteLoss, capLoss, guarLoss, paid, recovered, pnl: recovered - paid - guarLoss, totSlots, totCost, totSolo, exactAll };
   };
   const renderSettle = () => {
     const thisM = todayKey.slice(0, 7), lastM = addDays(thisM + '-01', -1).slice(0, 7), keys = data().keys;
@@ -2183,29 +2487,36 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const boxIt = r.totSlots ? r.totCost / r.totSlots / SET.boxesPerSlot : 0, boxSolo = r.totSlots ? r.totSolo / r.totSlots / SET.boxesPerSlot : 0;
     const bh = backhaulAll(), now = nowMin();
     const rts = bh.trucks.filter((t) => t.ret.dep <= now && inP.includes(keyOf(t.jeju)));
-    const emptyCost = rts.filter((t) => !t.pieces.length).reduce((a, t) => a + t.E, 0), recov = rts.filter((t) => t.pieces.length).reduce((a, t) => a + t.L - t.E, 0);
+    const emptyCost = rts.filter((t) => !t.pieces.length).reduce((a, t) => a + t.E, 0), recov = rts.reduce((a, t) => a + t.R, 0);
     $('s-mods').innerHTML = [
       modCard('④', '부피 실측', '상차 사진 → 적재 높이 비율 → 실측 칸 수', '사진 위 3점 표시 (바닥·롤테이너 윗선·화물 윗선)', `실측 반영 ${Object.keys(MEAS).length}건`, '운영자가 사진 위에 직접 표시', '깊이 카메라 + 비전 모델 자동 측정'),
       modCard('④', '기여도 기반 배분', '배편별 고객 칸 수 → 절감액 배분', `샤플리 값 (${r.exactAll ? '모든 조합 정확 계산' : '무작위 순서 2,000개 근사 포함'})`, `배편 ${r.sChk.n}편 중 ${r.sChk.ok}편: 샤플리 합 = 총 절감액`, '브라우저 계산', '대규모 배편은 표본 근사'),
       modCard('④', '적정 배송비', '칸당 실제 원가 ÷ 칸당 상자 수', '원가 기반', `상자당 해상 원가 ${won10(boxIt)} (혼자 보낼 때 ${won10(boxSolo)})`, `롤테이너 1칸 = 상자 ${SET.boxesPerSlot}개(설정)`, '실측 상자 수 연동'),
     ].join('');
     $('s-kpis').innerHTML = [
-      ['고객 청구액', won(bill), `${r.cust.length}개 고객 · ${inP.length}일 · ${val('smethod') === 'shap' ? '샤플리' : '부피 비율'}`],
-      ['혼자 보냈을 때', won(solo), solo ? pct((solo - bill) / solo) + ' 절감' : '—'],
-      ['잇섬 부담', won(r.quoteLoss + r.capLoss), `견적 보장 ${won(r.quoteLoss)} · 상한 ${won(r.capLoss)}`],
-      ['상자당 해상 원가', won10(boxIt), `혼자 보낼 때 ${won10(boxSolo)}`],
+      ['고객 최종 운임', won(bill), `${r.cust.length}개 고객 · ${inP.length}일 · 왕복 기준 ${val('smethod') === 'shap' ? '샤플리' : '부피 비율'} − 환급`],
+      ['혼자 보냈을 때 (왕복)', won(solo), solo ? pct((solo - bill) / solo) + ' 절감' : '—'],
+      ['플랫폼 손익 (복화)', won(r.pnl), `회수 ${won(r.recovered)} − 환급 지급 ${won(r.paid)} − 보장 환급 손실 ${won(r.guarLoss)}`],
+      ['상자당 해상 원가', won10(boxIt), `혼자 보낼 때 ${won10(boxSolo)} (왕복 기준)`],
     ].map(([k, v, s]) => kpi([k, v, s, '', 'data-scroll="s-cust-sec"'])).join('');
-    $('s-cust').innerHTML = r.cust.map((c) => `<tr><td>${esc(c.name)}</td><td>${srcTag(c.src)}</td><td>${c.sail}</td><td>${slotsTxt(c.slots)}</td><td>${won(c.vol)}</td><td>${won(c.shap)}</td><td>${won(c.solo)}</td><td><b>${won(c.bill)}</b></td><td>${pct((c.solo - c.bill) / c.solo)}</td><td>${c.quoted ? won(c.quoted) : '—'}</td><td>${c.meas ? `<span class="tag ${c.meas === '실측 차이' ? 'asm' : 'real'}">${c.meas}</span>` : ''}</td></tr>`).join('') || '<tr><td colspan="11" class="empty-note">기간 안 출항을 마친 주문이 없습니다.</td></tr>';
-    const allLe = r.cust.every((c) => c.bill <= c.solo + 0.5 && (!c.quoted || c.bill <= c.quoted + 0.5));
-    $('s-check').innerHTML = `<span class="${r.chk.ok === r.chk.n ? 'okmark' : 'ngmark'}">${r.chk.ok === r.chk.n ? '✓' : '✗'}</span> 트럭 ${r.chk.n}대 중 ${r.chk.ok}대: 같은 트럭 고객 도선료 분담 합 = 트럭 도선료 · <span class="${r.sChk.ok === r.sChk.n ? 'okmark' : 'ngmark'}">${r.sChk.ok === r.sChk.n ? '✓' : '✗'}</span> 샤플리 값 합 = 총 절감액 · <span class="${allLe ? 'okmark' : 'ngmark'}">${allLe ? '✓' : '✗'}</span> 모든 청구액 ≤ 혼자 비용·견적 운임`;
+    $('s-cust').innerHTML = r.cust.map((c) => `<tr><td>${esc(c.name)}</td><td>${srcTag(c.src)}</td><td>${c.sail}</td><td>${slotsTxt(c.slots)}</td><td>${won(c.vol)}</td><td>${won(c.shap)}</td><td>−${won(c.guar)}</td><td>${c.act ? '−' + won(c.act) : '—'}${c.pending ? ` <span class="small muted">(${c.pending}편 귀로 대기)</span>` : ''}</td><td><b>${won(c.bill)}</b></td><td>${won(c.solo)}</td><td>${won(c.solo - c.bill)} <span class="small muted">${pct((c.solo - c.bill) / c.solo)}</span></td><td>${c.quoted ? `<span class="tag real">견적 상한 ${won(c.quoted)}</span> ` : ''}${c.meas ? `<span class="tag ${c.meas === '실측 차이' ? 'asm' : 'real'}">${c.meas}</span>` : ''}</td></tr>`).join('') || '<tr><td colspan="12" class="empty-note">기간 안 출항을 마친 주문이 없습니다.</td></tr>';
+    const allLe = r.cust.every((c) => c.bill <= c.solo + 0.5 && (!c.quoted || c.bill <= c.quoted + (c.over || 0) + 0.5));
+    const mk = (okv, txt) => `<span class="${okv ? 'okmark' : 'ngmark'}">${okv ? '✓' : '✗'}</span> ${txt}`;
+    $('s-check').innerHTML = [
+      mk(r.chk.ok === r.chk.n, `트럭 ${r.chk.n}대: 같은 트럭 고객 도선료 분담 합 = 트럭 왕복 비용`),
+      mk(r.rChk.ok === r.rChk.n, `귀로를 마친 트럭 ${r.rChk.n}대: 제주행 고객 환급 합 = 그 트럭 회수액 R`),
+      mk(r.sChk.ok === r.sChk.n, '샤플리 값 합 = 총 절감액'),
+      mk(allLe, '모든 최종 운임 ≤ 확정 견적 ≤ 혼자(왕복) 비용'),
+    ].join(' · ') + `<br>합계: 회수한 공차 비용 <b>${won(r.recovered)}</b> · 지급한 환급 <b>${won(r.paid)}</b> · 보장 환급 손실 <b>${won(r.guarLoss)}</b> · 플랫폼 손익 <b>${won(r.pnl)}</b> · 보장 환급 적중률 ${r.hit.n ? pct(r.hit.ok / r.hit.n) : '—'} · 기타 잇섬 부담(견적 상한 ${won(r.quoteLoss)}, 혼자 비용 상한 ${won(r.capLoss)})`;
     const ret = new Map();
     // 혼자 트럭 비용은 화주·귀로 배편마다 올림(칸 수 ÷ 12) × 적재 도선료로 한 번만 셈
     const soloKey = new Map();
     rts.forEach((t) => t.pieces.forEach((p) => { const e = ret.get(p.q.shipper) || { name: p.q.shipper, src: p.q.source, slots: 0, bill: 0, solo: 0 }; e.slots += p.slots; e.bill += p.fare; ret.set(p.q.shipper, e); const k = p.q.shipper + '|' + t.P.id + '@' + t.ret.dep; const s = soloKey.get(k) || { e, slots: 0, L: t.L }; s.slots += p.slots; soloKey.set(k, s); }));
     soloKey.forEach((s) => { s.e.solo += Math.ceil(s.slots / SLOTS - 1e-9) * s.L; });
-    $('s-ret-kpis').innerHTML = [['귀로 공차 비용', won(emptyCost), `${rts.filter((t) => !t.pieces.length).length}대 × 공차 도선료`], ['복화로 회수한 금액', won(recov), '늘어난 도선료를 화주가 분담']].map(([k, v, s]) => kpi([k, v, s, '', 'data-scroll="s-ret-sec"'])).join('');
+    $('s-ret-kpis').innerHTML = [['귀로 공차 비용', won(emptyCost), `공차로 돌아간 ${rts.filter((t) => !t.pieces.length).length}대 × 공차 도선료`], ['복화 회수액 (제주행 환급 재원)', won(recov), `공차 분담률 ${pct(SET.alpha)} 가정`]].map(([k, v, s]) => kpi([k, v, s, '', 'data-scroll="s-ret-sec"'])).join('');
     $('s-ret').innerHTML = [...ret.values()].sort((a, b) => b.bill - a.bill).map((c) => `<tr><td>${esc(c.name)}</td><td>${srcTag(c.src)}</td><td>${slotsTxt(c.slots)}</td><td>${won(c.bill)}</td><td>${won(c.solo)}</td><td>${pct((c.solo - c.bill) / c.solo)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty-note">기간 안 매칭된 육지행 화물이 없습니다.</td></tr>';
-    $('s-ret-check').innerHTML = `<span class="okmark">✓</span> 화주 운임 = (적재 도선료 − 공차 도선료) × 내 칸 ÷ 실린 칸 + 하역비. 혼자 트럭은 적재 도선료 전액으로 비교했습니다.`;
+    const retOk = rts.every((t) => t.pieces.every((p) => p.fare < Math.ceil(p.slots / SLOTS - 1e-9) * t.L + HANDLING * p.slots && p.base <= SET.genRate * p.slots + 0.5));
+    $('s-ret-check').innerHTML = `<span class="${retOk ? 'okmark' : 'ngmark'}">${retOk ? '✓' : '✗'}</span> 화주 운임 = ((L − E) + ${pct(SET.alpha)} × E) × 내 칸 ÷ 실린 칸 + 하역비, 칸당 ${won(SET.genRate)} 상한 <span class="tag asm">가정</span>. 모든 육지행 운임 &lt; 혼자 트럭(L), 칸당 운임 ≤ 상한.`;
     // 사진 실측용 주문 목록
     const ordSel = $('ph-order'), prev = ordSel.value;
     const opts = [];
@@ -2215,7 +2526,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
   $('s-period').addEventListener('change', renderSettle);
   document.querySelectorAll('input[name="smethod"]').forEach((r) => r.addEventListener('change', renderSettle));
-  $('s-csv').addEventListener('click', () => { if (settleCache) download('itsum_settlement.csv', [['sailing_date', 'sailing', 'customer', 'source', 'slots', 'volume_bill', 'shapley_bill', 'solo_cost', 'billed', 'quoted_cap', 'note'], ...settleCache.lines]); });
+  $('s-csv').addEventListener('click', () => { if (settleCache) download('itsum_settlement.csv', [['sailing_date', 'sailing', 'customer', 'source', 'slots', 'roundtrip_volume', 'roundtrip_shapley', 'guaranteed_refund', 'actual_refund', 'confirmed_quote', 'final_fare', 'solo_roundtrip', 'quoted_cap', 'note'], ...settleCache.lines]); });
 
   // ---- ④ 사진 실측 ----
   const ph = { img: null, pts: [] };
@@ -2255,7 +2566,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     $('pt-list').innerHTML = PORTS.map((P) => `<button type="button" class="port-item" data-pt="${P.id}" aria-current="${P.id === ptSel}"><span><b>${P.name}</b> → 제주항</span><span>${portTag(P)}</span></button>`).join('');
     const c = CONFIG.find((x) => x.id === ptSel), f = (k, l, ph2 = '') => `<label class="field"><span>${l}</span><input type="number" data-k="${k}" value="${c[k] ?? ''}" placeholder="${ph2}" min="0" step="10"></label>`;
     $('pt-editor').innerHTML = `<div class="card-head"><h3>${c.name} 설정</h3><span>${portTag(P_BY[c.id])}</span></div>
-      <div class="fields">${f('fareW', '제주행 적재 도선료 (월~토)', '비우면 요금 미확보')}${f('fareH', '제주행 적재 (일·공휴일)', '비우면 평일 요금')}${f('empty', '제주행 공차 도선료')}${f('retW', '제주→육지 적재 도선료')}${f('retH', '제주→육지 적재 (일·공휴일)')}${f('retEmpty', '제주→육지 공차 도선료')}
+      <div class="fields">${f('fareW', '제주행 적재 도선료 (월~토)', '비우면 요금 미확보')}${f('fareH', '제주행 적재 (일·공휴일)', '비우면 평일 요금')}${f('empty', '제주행 공차 도선료')}${f('retW', '제주→육지 적재 도선료')}${f('retH', '제주→육지 적재 (일·공휴일)')}${f('retEmpty', '제주→육지 공차 도선료')}${f('retEmptyH', '제주→육지 공차 (일·공휴)', '비우면 늘어난 비용은 평일 값')}
       <label class="field"><span>출처</span><input type="text" data-k="source" value="${esc(c.source || '')}"></label><label class="field"><span>확인일</span><input type="date" data-k="checked" value="${c.checked || ''}"></label>
       <label class="field"><span>합적 지점 이름</span><input type="text" data-k="depotName" value="${esc(c.depotName || '')}" placeholder="${esc(c.name)} 합적 지점"></label><label class="field"><span>합적 지점 주소</span><input type="text" data-k="depotAddr" value="${esc(c.depotAddr || '')}" placeholder="비우면 위치 확정 예정(가정)"></label>
       <label class="field"><span>지도 링크</span><input type="text" data-k="depotMap" value="${esc(c.depotMap || '')}" placeholder="https://…"></label><label class="field"><span>연락처</span><input type="text" data-k="depotPhone" value="${esc(c.depotPhone || '')}"></label></div>
@@ -2267,7 +2578,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <button type="button" class="ghost sm add" id="pt-add-r">+ 귀로 배편 추가</button>
       <div class="actions"><span class="small muted">저장하면 이 브라우저에 보관되고, 견적·배송 계획·결항 대체·복화 후보에 바로 반영됩니다.</span><button type="button" class="primary" id="pt-save">저장</button></div>`;
     const S = SET;
-    $('pt-settings').innerHTML = [['delayCost', '지연 비용 (칸·시간당 원)'], ['boxesPerSlot', '롤테이너 1칸 상자 수'], ['emptyPerSlot', '빈 롤테이너 몇 개 = 1칸'], ['genRate', '일반화물 칸당 요율 (최소 적재 기준)'], ['mergeH', '합적 작업 시간 (반입 마감 = 화물 마감 − 이 시간)'], ['openH', '반입 시작: 반입 마감 몇 시간 전부터 (가정)']].map(([k, l]) => `<label class="field wide"><span>${l}</span><input type="number" data-set="${k}" value="${S[k]}" min="0"></label>`).join('') + `<label class="field wide" style="grid-template-columns:auto 1fr;align-items:center"><input type="checkbox" data-set="roundTrip"${S.roundTrip ? ' checked' : ''} style="width:auto"><span>왕복 원가 반영 (고객 운임에 귀로 공차 비용 포함, 기본 꺼짐)</span></label>`
+    $('pt-settings').innerHTML = [['delayCost', '지연 비용 (칸·시간당 원)'], ['boxesPerSlot', '롤테이너 1칸 상자 수'], ['emptyPerSlot', '빈 롤테이너 몇 개 = 1칸'], ['genRate', '육지행 칸당 상한 g · 일반화물 요율 (원, 가정)'], ['alpha', '공차 분담률 α: 귀로 공차 비용 중 육지행 화주 몫 (0~1, 가정)'], ['q', '보장 환급 예측 분위 q (0.1 = 하위 10%, 가정)'], ['minFill', '빈 칸 최소화: 이 비율 미만으로 찬 마지막 트럭은 다음 날로 이월 (0이면 끔)'], ['mergeH', '합적 작업 시간 (반입 마감 = 화물 마감 − 이 시간)'], ['openH', '반입 시작: 반입 마감 몇 시간 전부터 (가정)']].map(([k, l]) => `<label class="field wide"><span>${l}</span><input type="number" data-set="${k}" value="${S[k]}" min="0"></label>`).join('') + `<label class="field wide" style="grid-template-columns:auto 1fr;align-items:center"><input type="checkbox" data-set="roundTrip"${S.roundTrip ? ' checked' : ''} style="width:auto"><span>왕복 기준 운임 (제주행 운임에 귀로 공차 비용 포함, 기본 켜짐)</span></label>`
       + '<h3 class="wide" style="margin-top:6px">제주항 합적 지점 (육지행 반입)</h3>' + [['jdName', '이름', '제주항 합적 지점'], ['jdAddr', '주소', '비우면 위치 확정 예정(가정)'], ['jdMap', '지도 링크', 'https://…'], ['jdPhone', '연락처', '']].map(([k, l, ph]) => `<label class="field wide"><span>${l}</span><input type="text" data-set="${k}" value="${esc(S[k] || '')}" placeholder="${ph}"></label>`).join('');
   };
   $('pt-list').addEventListener('click', (e) => { const b = e.target.closest('[data-pt]'); if (b) { ptSel = b.dataset.pt; renderPorts(); } });
@@ -2284,11 +2595,11 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     else if (e.target.dataset.delR != null) { collect(); c.ret.splice(+e.target.dataset.delR, 1); renderPorts(); }
     else if (e.target.id === 'pt-save') { collect(); portsChanged(); renderPorts(); $('pt-msg').innerHTML = `<span class="okmark">✓</span> ${c.name} 저장 · ${P_BY[c.id].active ? '견적 추천·배송 계획·결항 대체·복화 후보에 포함됩니다.' : '요금이 비어 있어 비교 표에만 나옵니다.'}`; }
   });
-  $('pt-settings').addEventListener('change', (e) => { const k = e.target.dataset.set; if (!k) return; SET[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'text' ? e.target.value.trim() : +e.target.value; MERGE_H = SET.mergeH; saveSet(); bumpOps(); $('pt-msg').innerHTML = '<span class="okmark">✓</span> 운영 설정을 저장했습니다.'; });
+  $('pt-settings').addEventListener('change', (e) => { const k = e.target.dataset.set; if (!k) return; SET[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'text' ? e.target.value.trim() : +e.target.value; MERGE_H = SET.mergeH; if (k === 'q') retrainRqLo(); saveSet(); bumpOps(); portsVer++; $('pt-msg').innerHTML = '<span class="okmark">✓</span> 운영 설정을 저장했습니다.'; });
   $('pt-reset').addEventListener('click', () => { CONFIG = JSON.parse(JSON.stringify(DEFAULT_PORTS)); portsChanged(); renderPorts(); $('pt-msg').textContent = '초기값으로 되돌렸습니다.'; });
   $('pt-export').addEventListener('click', () => {
     const fares = [['port', 'direction', 'type', 'weekday', 'holiday', 'status', 'source', 'checked']];
-    CONFIG.forEach((c) => { const st = c.fareW ? '실제' : '미확보'; fares.push([c.name, '제주행', '적재', c.fareW ?? '', c.fareH ?? '', st, c.source, c.checked], [c.name, '제주행', '공차', c.empty ?? '', '', st, c.source, c.checked], [c.name, '육지행', '적재', c.retW ?? '', c.retH ?? '', st, c.source, c.checked], [c.name, '육지행', '공차', c.retEmpty ?? '', '', st, c.source, c.checked]); });
+    CONFIG.forEach((c) => { const st = c.fareW ? '실제' : '미확보'; fares.push([c.name, '제주행', '적재', c.fareW ?? '', c.fareH ?? '', st, c.source, c.checked], [c.name, '제주행', '공차', c.empty ?? '', '', st, c.source, c.checked], [c.name, '육지행', '적재', c.retW ?? '', c.retH ?? '', st, c.source, c.checked], [c.name, '육지행', '공차', c.retEmpty ?? '', c.retEmptyH ?? '', st, c.source, c.checked]); });
     download('fares.csv', fares);
     const sails = [['port', 'direction', 'ship', 'departure', 'arrival', 'cutoff', 'time_status']];
     CONFIG.forEach((c) => { c.sail.forEach((s) => sails.push([c.name, '제주행', s.ship, s.dep, s.arr, s.cut, s.st])); c.ret.forEach((s) => sails.push([c.name, '육지행', '', s.dep, s.dur, '', '가정'])); });
@@ -2301,12 +2612,57 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       const head = rows.shift(), H = Object.fromEntries(head.map((h, i) => [h, i]));
       const byName = (n) => CONFIG.find((c) => c.name === n);
       if ('weekday' in H) {
-        rows.forEach((r) => { const c = byName(r[H.port]); if (!c) return; const w = r[H.weekday] === '' ? null : +r[H.weekday], h = r[H.holiday] === '' ? null : +r[H.holiday]; const to = r[H.direction] === '제주행', loaded = r[H.type] === '적재'; if (to && loaded) { c.fareW = w; c.fareH = h; } else if (to) c.empty = w; else if (loaded) { c.retW = w; c.retH = h; } else c.retEmpty = w; if (H.source != null && r[H.source]) c.source = r[H.source]; if (H.checked != null && r[H.checked]) c.checked = r[H.checked]; });
+        rows.forEach((r) => { const c = byName(r[H.port]); if (!c) return; const w = r[H.weekday] === '' ? null : +r[H.weekday], h = r[H.holiday] === '' ? null : +r[H.holiday]; const to = r[H.direction] === '제주행', loaded = r[H.type] === '적재'; if (to && loaded) { c.fareW = w; c.fareH = h; } else if (to) c.empty = w; else if (loaded) { c.retW = w; c.retH = h; } else { c.retEmpty = w; c.retEmptyH = h; } if (H.source != null && r[H.source]) c.source = r[H.source]; if (H.checked != null && r[H.checked]) c.checked = r[H.checked]; });
       } else if ('departure' in H) {
         const touched = new Set();
         rows.forEach((r) => { const c = byName(r[H.port]); if (!c) return; if (!touched.has(c.id)) { c.sail = []; c.ret = []; touched.add(c.id); } if (r[H.direction] === '제주행') c.sail.push({ ship: r[H.ship], dep: r[H.departure], arr: r[H.arrival], cut: r[H.cutoff], st: r[H.time_status] || 'asm' }); else c.ret.push({ dep: r[H.departure], dur: r[H.arrival] }); });
       } else { $('pt-msg').innerHTML = '<span class="ngmark">✗</span> fares.csv 또는 sailings.csv 형식이 아닙니다.'; return; }
       portsChanged(); renderPorts(); $('pt-msg').innerHTML = `<span class="okmark">✓</span> ${esc(f.name)}을 불러왔습니다.`;
+    });
+    e.target.value = '';
+  });
+
+  // ---- 박스 등급 관리 ----
+  let bxSel = 'hanjin';
+  const boxesChanged = () => { store.set(BOX_KEY, BOXES); fillCouriers($('q-courier')); cargo.refresh(); rqCargo.refresh(); };
+  const renderBoxes = () => {
+    const sel = $('bx-courier');
+    sel.innerHTML = COURIERS.map((k) => `<option value="${k}">${esc(BOXES[k].name)}</option>`).join(''); sel.value = bxSel;
+    const c = BOXES[bxSel];
+    $('bx-editor').innerHTML = `<div class="fields"><label class="field"><span>구분</span><select data-bx="st">${['실제', '예시', '가정'].map((s) => `<option${c.st === s ? ' selected' : ''}>${s}</option>`).join('')}</select></label><label class="field"><span>출처</span><input type="text" data-bx="src" value="${esc(c.src || '')}"></label></div>
+      <div class="tablewrap mini-table"><table><thead><tr><th>등급</th><th>세 변의 합 (cm)</th><th>무게 상한 (kg)</th><th>대표 부피 (㎥, 비우면 자동)</th><th>1칸(1.2㎥)당</th><th></th></tr></thead><tbody>${c.grades.map((g, i) => `<tr><td><input type="text" data-g="${i}" data-f="n" value="${esc(g.n)}"></td><td><input type="number" data-g="${i}" data-f="sum" value="${g.sum ?? ''}"></td><td><input type="number" data-g="${i}" data-f="kg" value="${g.kg ?? ''}"></td><td><input type="number" step="0.001" data-g="${i}" data-f="vol" value="${g.vol ?? ''}" placeholder="${num(gradeVol({ sum: g.sum }), 3)}"></td><td>약 ${num(1.2 / gradeVol(g))}개</td><td><button type="button" class="c-del" data-gdel="${i}" aria-label="등급 삭제">×</button></td></tr>`).join('')}</tbody></table></div>
+      <div class="actions"><button type="button" class="ghost sm" id="bx-add">+ 등급 추가</button><button type="button" class="primary" id="bx-save">저장</button></div>`;
+  };
+  $('bx-courier').addEventListener('change', (e) => { bxSel = e.target.value; renderBoxes(); });
+  const bxCollect = () => {
+    const c = BOXES[bxSel];
+    $('bx-editor').querySelectorAll('[data-bx]').forEach((el) => { c[el.dataset.bx] = el.value; });
+    $('bx-editor').querySelectorAll('[data-g]').forEach((el) => { const g = c.grades[+el.dataset.g], f = el.dataset.f; g[f] = f === 'n' ? el.value : el.value === '' ? undefined : +el.value; });
+  };
+  $('bx-editor').addEventListener('click', (e) => {
+    const c = BOXES[bxSel];
+    if (e.target.id === 'bx-add') { bxCollect(); c.grades.push({ n: '새 등급', sum: 120 }); renderBoxes(); }
+    else if (e.target.dataset.gdel != null) { bxCollect(); if (c.grades.length > 1) c.grades.splice(+e.target.dataset.gdel, 1); renderBoxes(); }
+    else if (e.target.id === 'bx-save') { bxCollect(); boxesChanged(); renderBoxes(); $('bx-msg').innerHTML = `<span class="okmark">✓</span> ${esc(c.name)} 등급을 저장했습니다. 견적 환산에 바로 쓰입니다.`; }
+  });
+  $('bx-reset').addEventListener('click', () => { BOXES = JSON.parse(JSON.stringify(DEFAULT_BOXES)); boxesChanged(); renderBoxes(); $('bx-msg').textContent = '초기값으로 되돌렸습니다.'; });
+  $('bx-export').addEventListener('click', () => download('box_grades.csv', [['courier', 'grade', 'sum_cm', 'max_kg', 'vol_m3', 'status', 'source'], ...COURIERS.flatMap((k) => BOXES[k].grades.map((g) => [BOXES[k].name, g.n, g.sum ?? '', g.kg ?? '', g.vol ?? '', BOXES[k].st, BOXES[k].src]))]));
+  $('bx-import').addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    f.text().then((txt) => {
+      const rows = txt.replace(/^﻿/, '').split(/\r?\n/).filter(Boolean).map((l) => l.split(',').map((x) => x.replace(/^"|"$/g, '').trim()));
+      const head = rows.shift(), H = Object.fromEntries(head.map((h, i) => [h, i]));
+      if (!('grade' in H)) { $('bx-msg').innerHTML = '<span class="ngmark">✗</span> box_grades.csv 형식이 아닙니다.'; return; }
+      const touched = new Set(), n = (x) => (x === '' || x == null ? undefined : +x);
+      rows.forEach((r) => {
+        const k = COURIERS.find((c) => BOXES[c].name === r[H.courier]);
+        if (!k) return;
+        if (!touched.has(k)) { BOXES[k].grades = []; touched.add(k); }
+        BOXES[k].grades.push({ n: r[H.grade], sum: n(r[H.sum_cm]), kg: n(r[H.max_kg]), vol: n(r[H.vol_m3]) });
+        if (r[H.status]) BOXES[k].st = r[H.status];
+        if (r[H.source]) BOXES[k].src = r[H.source];
+      });
+      boxesChanged(); renderBoxes(); $('bx-msg').innerHTML = `<span class="okmark">✓</span> ${esc(f.name)}을 불러왔습니다.`;
     });
     e.target.value = '';
   });
@@ -2319,7 +2675,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     for (let m = 0.5; m <= 30; m += 2.5) for (const temp of ['ambient', 'cold']) { const r = quote({ ...base, lines: [{ type: 'roll', qty: m, size: 0.06 }], temp }); if (!r.error) worst = Math.max(worst, r.fare - r.sh.solo); }
     ok('내 운임 ≤ 혼자 트럭 비용 (24가지 견적)', worst <= 10, worst > 10 ? `최대 초과 ${won(worst)}` : '');
     const ex = share(3, 6, 364380);
-    ok('예시: 평일 목포 상온 3칸 + 다른 고객 6칸 = 130,460원, 혼자 364,380원', Math.round(ex.fare) === 130460 && ex.solo === 364380, `${won(ex.fare)} / ${won(ex.solo)}`);
+    ok('편도 분담 확인: 평일 목포 상온 3칸 + 다른 고객 6칸 = 130,460원, 혼자 364,380원', Math.round(ex.fare) === 130460 && ex.solo === 364380, `${won(ex.fare)} / ${won(ex.solo)}`);
     let sun = TODAY0; while (dowOf(sun) !== 0) sun += DAY;
     ok('일요일·공휴일 목포 출항 406,410원', truckCost(P_BY.mokpo, sun + 60) - (SET.roundTrip ? P_BY.mokpo.retEmpty : 0) === 406410);
     const rec = quote(base).rec;
@@ -2333,7 +2689,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const test = planDay('mokpo', tk, 'cur', [...ops.forced, 'mokpo@' + s0.dep]);
     ok(`결항 처리 시험 (${fmtMD(tk)} 01:00편): 그 배편 칸 0, 주문은 다른 배편·다음 날로`, test.sailings[0].trucks.length === 0 && test.orders.every((x) => test.placed.has(x.o.id) || test.carryOut.some((c) => c.o === x.o)));
     let sumOk = true, capOk = true, shapOk = true;
-    for (const k of D.keys.filter((k) => parseDay(k) <= TODAY0)) { const st = settleDay(k); if (st.trucksChk.ok !== st.trucksChk.n) sumOk = false; if (st.shapChk.ok !== st.shapChk.n) shapOk = false; st.groups.forEach((g) => { const b = billOf(g, 'vol'); if (b > g.solo + 0.5 || (g.quoted && b > g.quoted + 0.5)) capOk = false; }); }
+    for (const k of D.keys.filter((k) => parseDay(k) <= TODAY0)) { const st = settleDay(k); if (st.trucksChk.ok !== st.trucksChk.n) sumOk = false; if (st.shapChk.ok !== st.shapChk.n) shapOk = false; st.groups.forEach((g) => { const b = billOf(g, 'vol'); if (b > g.solo + (g.over || 0) + 0.5 || (g.quoted && b > g.quoted + (g.over || 0) + 0.5)) capOk = false; }); }
     ok('같은 트럭 고객 도선료 분담 합 = 트럭 도선료', sumOk); ok('정산 청구액 ≤ 혼자 비용, ≤ 견적 운임', capOk); ok('샤플리 값 합 = 총 절감액', shapOk);
     const bh = backhaulAll();
     let bMix = 0, bLate = 0, before = 0, after = 0;
@@ -2350,6 +2706,45 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const sN = sailingsOn(P_BY.mokpo, TODAY0)[0], ikN = intakeOf(sN.cutoff);
     ok(`반입 마감 = 화물 마감 − 합적 작업 ${num(MERGE_H, 1)}시간 (01:00 퀸제누비아2호, 마감 23:00)`, ikN.close === sN.cutoff - Math.round(MERGE_H * 60) && (MERGE_H !== 1 || fmtTime(ikN.close) === '22:00'), fmtTime(ikN.close) + '까지');
     if (memory.length) { const b = memory[0], bn = bookingNow(b); ok('예약 반입 안내가 지금 배편 기준 (결항 재배정·늦은 반입 반영)', bn.ik.close === bn.s.cutoff - Math.round(MERGE_H * 60), `${b.id} → ${fmtDT(bn.ik.close)}`); }
+    // ---- 왕복 기준 + 복화 환급 ----
+    const rx = rtExample(0.6);
+    ok('왕복 예시: 왕복 기준 223,200원 · 내 환급 46,370원 · 복화 시 최종 176,830원', Math.round(rx.base) === 223200 && Math.round(rx.refund) === 46370 && rx.fin === 176830, `${won(rx.base)} / ${won(rx.refund)} / ${won(rx.fin)}`);
+    const e8 = retExample(8, 2), e4 = retExample(4, 2);
+    ok('육지행 예시: 8칸 중 2칸 62,320원 · 4칸이면 칸당 40,000원 상한', r10(e8.fare) === 62320 && e4.capped && Math.round(e4.R) === 73840, `${won10(e8.fare)} · 4칸 R ${won(e4.R)}`);
+    let qOk = true, idOk = true, wfOk = true;
+    for (let m = 1; m <= 25; m += 3) for (const temp of ['ambient', 'cold']) {
+      const r = quote({ ...base, lines: [{ type: 'roll', qty: m, fill: 1 }], temp });
+      if (r.error) continue;
+      if (!(r.fare <= r.base + 0.5 && r.base <= r.sh.solo + 10)) qOk = false;
+      if (Math.abs((r.sh.solo - r.base) + (r.base - r.fare) + r.fare - r.sh.solo) > 0.5) idOk = false;
+      if (Math.abs(r10(r.base - r.rf.max) - (r.base - r.rf.max)) > 5) wfOk = false;
+    }
+    ok('확정 견적 ≤ 왕복 기준 운임 ≤ 혼자 왕복 비용 (16가지 견적)', qOk);
+    ok('공동적재 절감 + 보장 환급 + 확정 견적 = 혼자 왕복 비용', idOk);
+    ok('워터폴 마지막 값 = 왕복 기준 − 전체 환급', wfOk);
+    let bkOk = true;
+    memory.forEach((b) => { const bn = bookingNow(b), sh2 = share(b.mine, q4(othersPred(bn.s, b.q.temp).mean), truckCost(bn.P, bn.s.dep)), rf = refundFor(bn.P, bn.s, sh2, b.mine); if ((b.guar || 0) + Math.max(0, rf.exp - (b.guar || 0)) > Math.max(rf.max, b.guar || 0) + 1) bkOk = false; });
+    ok('예약 조회: 이미 받은 환급 + 앞으로 받을 예상 환급 ≤ 전체 환급', bkOk, `${memory.length}건`);
+    let fOk = true, retOk2 = true, refOk = true;
+    D.keys.filter((k) => parseDay(k) <= TODAY0).forEach((k) => { const st = settleDay(k); if (st.refChk.ok !== st.refChk.n) refOk = false; st.groups.forEach((g) => { const f = finalOf(g, 'vol'); if (f.fin > f.conf + (g.quoted ? (g.over || 0) : 0) + 0.5 || f.conf > g.solo + 0.5) fOk = false; }); });
+    backhaulAll().trucks.forEach((t) => t.pieces.forEach((p) => { if (!(p.fare < Math.ceil(p.slots / SLOTS - 1e-9) * t.L + HANDLING * p.slots) || p.base > SET.genRate * p.slots + 0.5) retOk2 = false; }));
+    ok('모든 제주행 최종 운임 ≤ 확정 견적 ≤ 혼자(왕복) 비용', fOk);
+    ok('모든 육지행 운임 < 혼자 트럭(L), 칸당 운임 ≤ 상한 g', retOk2);
+    ok('트럭별: 제주행 고객 환급 합 = 그 트럭 회수액 R', refOk);
+    const sp = settlePeriod(D.keys.filter((k) => parseDay(k) <= TODAY0));
+    ok('플랫폼 손익 = 회수액 − 환급 지급 − 보장 환급 손실', Math.abs(sp.pnl - (sp.recovered - sp.paid - sp.guarLoss)) < 1, won(sp.pnl));
+    const hf = retFare(P_BY.mokpo, sun + 990);
+    ok('일·공휴일 귀로: 늘어난 비용은 평일 값 86,160원 + "확인 필요"', hf.needCheck && hf.inc === 86160, `${won(hf.inc)}`);
+    // ---- 부피 입력·실측 ----
+    const hj = { courier: 'hanjin', rollM3: 1.2, rollSpec: 1.2 };
+    const hjSlots = billSlots(lineSlots({ type: 'box', qty: 120, grade: 1 }, hj) + lineSlots({ type: 'box', qty: 40, grade: 2 }, hj));
+    ok('한진 소형 120개 + 중형 40개 → 과금 6칸', hjSlots === 6, slotsTxt(hjSlots));
+    ok('롤테이너 2개 "반" (기본 규격) → 1칸', billSlots(lineSlots({ type: 'roll', qty: 2, fill: 0.5 }, hj)) === 1);
+    const gLow = { vol: 200000, shap: 200000, guar: 20000, act: 30000, retDone: true, quoted: 190000, over: 0 }, gHigh = { ...gLow, vol: 230000, shap: 230000, over: 15000 };
+    const fl = finalOf(gLow, 'vol'), fh = finalOf(gHigh, 'vol');
+    ok('실측 < 입력이면 최종 ≤ 확정 견적, 실측 > 입력이면 초과 칸만 추가', fl.fin <= fl.conf + 0.5 && Math.abs(fh.fin - (Math.min(gHigh.vol - gHigh.act, fh.conf) + 15000)) < 0.5, `${won(fl.fin)} · ${won(fh.fin)}`);
+    const rc = quote({ ...base, name: '택배A', lines: [{ type: 'roll', qty: 6, fill: 1 }] });
+    ok('AI 보정 후 칸 수 ≤ 보정 전', !rc.error && rc.raw <= rc.raw0 + 1e-9, rc.corr ? `×${num(rc.corr.ratio, 2)}` : '');
     ok('물량 예측 MAPE·결항 예측 AUC가 숫자로 나옴', isFinite(AI.volMAPE) && isFinite(AI.cxEvalGB.auc), `MAPE ${pct(AI.volMAPE)} · AUC ${num(AI.cxEvalGB.auc, 3)}`);
     return out;
   };
@@ -2362,16 +2757,31 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   });
 
   // ---- 고객 화면: 육지로 배송 요청 ----
-  const rqCargo = makeCargo($('rq-cargo'), () => rqConvert());
+  const RQCTX = { courier: 'etc', rollM3: 1.2, rollSpec: 1.2 };
+  const rqCargo = makeCargo($('rq-cargo'), () => rqConvert(), () => 'etc');
   const rqConvert = () => {
     const lines = rqCargo.get().filter((l) => l.qty > 0);
     $('rq-row-hours').hidden = $('rq-hub').value !== '기타';
-    $('rq-convert').innerHTML = lines.length ? `${lines.map((l) => lineTxt(l, 1.2)).join(' + ')} → <b>${slotsTxt(billSlots(lines.reduce((a, l) => a + lineSlots(l, 1.2), 0)))}</b>` : '—';
+    $('rq-convert').innerHTML = lines.length ? `${lines.map((l) => lineTxt(l, RQCTX)).join(' + ')} → <b>${slotsTxt(billSlots(lines.reduce((a, l) => a + lineSlots(l, RQCTX), 0)))}</b>` : '—';
   };
   $('rq-hub').addEventListener('change', rqConvert);
+  // 예시 계산 (목포 평일): 제주행 왕복 + 복화 환급(2-5), 육지행 운임(3-3)
+  const MP = { F: 364380, L: 364380, E: 278220 };
+  const retExample = (total, mine) => {
+    const inc = MP.L - MP.E, K = inc + SET.alpha * MP.E, perSlot = K / total, base = Math.min(K * mine / total, SET.genRate * mine);
+    const R = Math.min(K, SET.genRate * total) - inc;
+    return { inc, K, perSlot, capped: perSlot > SET.genRate, fare: base + HANDLING * mine, R };
+  };
+  const rtExample = (rhoLo = 0.6) => {
+    const C = MP.F + MP.E, sh = share(3, 6, C), refund = MP.E * SET.alpha * 3 / 9, guar = refund * rhoLo;
+    const conf = r10(sh.fare - guar), fin = r10(sh.fare - refund);
+    return { C, base: sh.fare, solo: sh.solo, refund, guar, conf, fin, extra: conf - fin };
+  };
   const renderReturnList = () => {
     fillHubPort($('rq-hub'), $('rq-port'), '자동 (빈 트럭이 있는 항구)');
     rqConvert();
+    const e8 = retExample(8, 2), e4 = retExample(4, 2);
+    $('rq-example').innerHTML = `예: 목포항행 귀로 트럭에 8칸이 실리고 내 화물이 2칸이면 ((364,380 − 278,220) + ${pct(SET.alpha)} × 278,220) × 2/8 + 6,000 = <b>${won10(e8.fare)}</b> (혼자 트럭 364,380원보다 ${pct(1 - e8.fare / 364380)} 절감). 4칸만 실리면 칸당 ${won(e4.perSlot)}이 상한 ${won(SET.genRate)}을 넘어 칸당 ${won(SET.genRate)}으로 깎습니다. 제주항 출항 시각은 가정값입니다.`;
     $('rq-empty').hidden = myReturns.length > 0;
     const bh = backhaulAll();
     $('rq-list').innerHTML = myReturns.map((q) => {
@@ -2388,8 +2798,8 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const err = !lines.length ? '화물을 한 가지 이상, 0보다 크게 입력해 주세요.' : !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < todayKey ? '준비일을 오늘 이후로 골라 주세요.' : !/^\d{2}:\d{2}$/.test(time) ? '준비 시각을 입력해 주세요.' : '';
     $('rq-error').hidden = !err; $('rq-error').textContent = err;
     if (err) return;
-    const slots = billSlots(lines.reduce((a, l) => a + lineSlots(l, 1.2), 0)), id = 'RQ' + date.slice(2).replace(/-/g, '') + '-' + randId();
-    myReturns = [{ id, created: Date.now(), name: $('rq-name').value.trim(), lines, desc: lines.map((l) => lineTxt(l, 1.2)).join(' + ') + ' = ' + slotsTxt(slots), slots, reefer: val('rqtemp') === 'cold', hub: $('rq-hub').value, hours: +$('rq-hours').value, port: $('rq-port').value, readyT: parseDay(date) + (+time.slice(0, 2)) * 60 + (+time.slice(3, 5)) }, ...myReturns];
+    const slots = billSlots(lines.reduce((a, l) => a + lineSlots(l, RQCTX), 0)), id = 'RQ' + date.slice(2).replace(/-/g, '') + '-' + randId();
+    myReturns = [{ id, created: Date.now(), name: $('rq-name').value.trim(), lines, desc: lines.map((l) => lineTxt(l, RQCTX)).join(' + ') + ' = ' + slotsTxt(slots), slots, reefer: val('rqtemp') === 'cold', hub: $('rq-hub').value, hours: +$('rq-hours').value, port: $('rq-port').value, readyT: parseDay(date) + (+time.slice(0, 2)) * 60 + (+time.slice(3, 5)) }, ...myReturns];
     store.set(userRqKey, myReturns);
     $('rq-done-id').textContent = id; $('rq-done').hidden = false;
     bumpOps(); renderReturnList();
@@ -2398,11 +2808,27 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
 
   // ---- 요금 안내 ----
   const renderPricing = () => {
-    const F = 364380;
-    $('ex-strip').innerHTML = fareStrip([{ label: 'A', n: 6, color: '#8D6E63' }, { label: 'B', n: 3, color: 'var(--others)', ink: '#3E2723' }, { label: '나', n: 3, color: 'var(--orange)' }], SLOTS, F);
-    $('ex-share').textContent = won(F * 3 / 12); $('ex-total').textContent = won(share(3, 9, F).fare);
-    const t = share(3, 6, F);
-    $('ex-steps').innerHTML = [['트럭 1회 비용', won(F), '목포항 평일 도선료'], ['내 부피 비율', pct(3 / 9), '9칸 중 3칸'], ['도선료 분담', won(F * 3 / 9), '364,380원 × 3/9'], ['하역비', won(9000), '3칸 × 3,000원']].map(([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`).join('') + `<li class="total"><span>내 운임 (혼자 ${won(t.solo)}, ${pct(1 - t.fare / t.solo)} 절감)</span><span class="v">${won(t.fare)}</span></li>`;
+    const C = MP.F + MP.E;
+    $('ex-strip').innerHTML = fareStrip([{ label: 'A', n: 6, color: '#8D6E63' }, { label: 'B', n: 3, color: 'var(--others)', ink: '#3E2723' }, { label: '나', n: 3, color: 'var(--orange)' }], SLOTS, C);
+    $('ex-share').textContent = won(C * 3 / 12); $('ex-total').textContent = won(share(3, 9, C).fare);
+    const ex = rtExample(0.6), li = ([a, b, c]) => `<li><span>${a}</span><span class="v">${b}</span><span class="d">${c}</span></li>`;
+    $('ex-steps').innerHTML = [
+      ['트럭 왕복 비용', won(ex.C), '적재 364,380원 + 귀로 공차 278,220원'],
+      ['내 칸 비율', pct(3 / 9), '9칸 중 3칸'],
+      ['도선료 분담 + 하역비', won(ex.base), `642,600원 × 3/9 + 9,000원 = 왕복 기준 운임 (혼자 왕복 ${won(ex.solo)}, ${pct(1 - ex.base / ex.solo)} 절감)`],
+      ['복화 시 내 환급', won(ex.refund), `트럭 회수액 278,220원 × ${pct(SET.alpha)} = ${won(MP.E * SET.alpha)} × 3/9`],
+      ['보장 환급 (예: 회수율 하위 10% 예측 0.6)', '−' + won(ex.guar), `${won(ex.refund)} × 0.6 · AI 예측 기반`],
+      ['확정 견적', won(ex.conf), '이 금액보다 더 내지 않음'],
+    ].map(li).join('') + `<li class="total"><span>귀로에 실제로 실리면 최종 운임</span><span class="v">${won(ex.fin)}</span><span class="d">추가 환급 ${won(ex.extra)} · 안 실리면 ${won(ex.conf)} 그대로이고 보장 환급 ${won(ex.guar)}은 잇섬 부담</span></li>`;
+    const e8 = retExample(8, 2), e4 = retExample(4, 2);
+    $('ex-ret-steps').innerHTML = [
+      ['늘어난 비용 (L − E)', won(e8.inc), '364,380원 − 278,220원'],
+      ['공차 분담 (α × E)', won(MP.E * SET.alpha), `278,220원 × ${pct(SET.alpha)}`],
+      ['트럭 화주 납부 K', won(e8.K), `칸당 ${won(e8.perSlot)} ≤ ${won(SET.genRate)} → 상한 미적용`],
+      ['내 운임 (2/8 + 하역비)', won10(e8.fare), `혼자 트럭 364,380원 대비 ${pct(1 - e8.fare / 364380)} 절감`],
+      ['이 트럭 회수액 R', won(e8.R), 'K − (L − E) → 이 트럭으로 제주에 온 고객에게 환급'],
+    ].map(li).join('') + `<li class="total"><span>4칸만 실리면</span><span class="v">칸당 ${won(SET.genRate)}</span><span class="d">칸당 ${won(e4.perSlot)} > 상한이라 깎음 → 회수액 R = ${won(SET.genRate * 4)} − ${won(e4.inc)} = ${won(e4.R)}</span></li>`;
+    $('rt-flow').innerHTML = `<div class="flow-row"><span class="chip hub">제주행 트럭 왕복 비용 ${won(C)}</span><span class="to">→</span><span class="chip">고객들이 칸 비율로 분담 (왕복 기준 운임)</span><span class="to">→</span><span class="chip ship">제주항에서 귀로 화물 실림</span><span class="to">→</span><span class="chip">회수액 R = 귀로 화주 납부 − 늘어난 비용</span><span class="to">→</span><span class="chip hub">그 트럭 제주행 고객에게 칸 비율로 환급</span></div>`;
     $('port-table').innerHTML = PORTS.map((P) => `<tr><td><b>${P.name}</b></td><td>${portTag(P)}</td><td>${P.sail.map((s) => `${esc(s.ship)} ${hmTxt(s.dep)} → ${hmTxt(s.arr)} · 마감 ${hmTxt(s.cut)}`).join('<br>')}</td><td>${P.active ? `${won(P.fareW)} / ${P.fareH ? won(P.fareH) : '평일 요금 적용'}` : '요금 미확보'}</td><td>${P.empty ? won(P.empty) : '—'}</td><td>${P.retW ? `${won(P.retW)} / ${won(P.retEmpty)}` : '—'}</td><td>${esc(P.source || '—')}${P.checked ? ` · ${P.checked}` : ''}</td></tr>`).join('');
     const keys = data().keys.filter((k) => parseDay(k) <= TODAY0 && parseDay(k) > TODAY0 - 28 * DAY);
     let sl = 0, cost = 0;
@@ -2445,7 +2871,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     else if (v === 'ops-plan') renderPlan();
     else if (v === 'ops-back') renderBack();
     else if (v === 'ops-settle') { renderSettle(); phDraw(); phMsg(); }
-    else if (v === 'ops-ports') renderPorts();
+    else if (v === 'ops-ports') { renderPorts(); renderBoxes(); }
   };
   window.addEventListener('hashchange', route);
   $('qform').addEventListener('input', () => render());
