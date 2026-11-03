@@ -216,6 +216,10 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
 .kpis .arrow { color: var(--ink-muted); font-weight: 400; font-size: 18px; margin: 0 4px; }
 .kpis .card.done-k .num { color: var(--orange-deep); }
 .kpis .card.need-k .num { color: var(--need); }
+button.kpi-btn { font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; }
+button.kpi-btn:hover { border-color: var(--orange); }
+button.kpi-btn[aria-pressed="true"] { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange), var(--shadow); background: var(--orange-soft); }
+button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-deep); margin-top: 2px; }
 .kgroup { display: grid; gap: 10px; }
 .kgroup h3 { display: flex; gap: 8px; align-items: center; }
 .aimod { border: 1px solid #DCD7F5; background: linear-gradient(180deg, #F7F5FE, #fff); }
@@ -667,11 +671,11 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
         <div class="card-head"><h3>반입 예정 (예약 고객)</h3><span class="small muted">"반입 확인"은 합적 지점의 QR 스캔을 대신하는 시연용 버튼입니다. 마감 1시간 전까지 반입되지 않으면 지연 위험으로 표시합니다.</span></div>
         <div class="tablewrap"><table><thead><tr><th>예약 번호</th><th>고객</th><th>반입 장소</th><th>반입 가능</th><th>반입 마감</th><th>배편</th><th>고객 알림</th><th>상태</th><th></th></tr></thead><tbody id="a-intake"></tbody></table></div>
       </section>
-      <section class="card">
+      <section class="card" id="a-out-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>육지 → 제주 요청</h3><div class="row"><div class="seg inline" role="radiogroup" aria-label="육지→제주 상태"><label><input type="radio" name="aout" value="" checked><span>전체</span></label><label><input type="radio" name="aout" value="매칭 완료"><span>매칭 완료</span></label><label><input type="radio" name="aout" value="매칭 필요"><span>매칭 필요</span></label></div><button type="button" class="ghost sm" id="a-out-csv">CSV</button></div></div>
         <div class="tablewrap"><table><thead><tr><th>주문 번호</th><th>구분</th><th>고객</th><th>출발</th><th>목적지</th><th>칸</th><th>온도</th><th>배편</th><th>상태</th><th>내용</th></tr></thead><tbody id="a-out-table"></tbody></table></div>
       </section>
-      <section class="card">
+      <section class="card" id="a-ret-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>제주 → 육지 요청</h3><div class="row"><div class="seg inline" role="radiogroup" aria-label="제주→육지 상태"><label><input type="radio" name="aret" value="" checked><span>전체</span></label><label><input type="radio" name="aret" value="매칭 완료"><span>매칭 완료</span></label><label><input type="radio" name="aret" value="매칭 필요"><span>매칭 필요</span></label></div><button type="button" class="ghost sm" id="a-ret-csv">CSV</button></div></div>
         <div class="tablewrap"><table><thead><tr><th>요청 번호</th><th>구분</th><th>화주</th><th>도착</th><th>칸</th><th>온도</th><th>준비</th><th>상태</th><th>내용</th></tr></thead><tbody id="a-ret-table"></tbody></table></div>
       </section>
@@ -722,7 +726,7 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
       <section class="card aimod"><div class="card-head"><h3>AI 모듈 ③ 복화 매칭</h3><span class="tag syn">가상 데이터</span></div><div class="mods" id="bk-mods"></div></section>
       <p class="notice">제주항 출항 귀로 배편 시각은 <span class="tag asm">가정</span> 값입니다(목포항행 포함, 선사 확인 필요). 트럭은 제주항 도착 후 하역 2시간을 마치고, 출항 2시간 전 마감에 맞출 수 있는 첫 귀로 배편으로 자기 출발항에 돌아갑니다. 못 실은 요청은 다음 귀로 배편 후보로 넘어갑니다.</p>
       <div class="kpis" id="bk-kpis"></div>
-      <section class="card">
+      <section class="card" id="bk-truck-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>육지행 트럭별 매칭</h3><span class="tag syn">육지행 요청 가상 데이터 포함</span></div>
         <div class="tablewrap"><table><thead><tr><th>트럭</th><th>온도</th><th>제주항 → 귀로 항구</th><th>귀로 출항</th><th>실린 육지행 화물</th><th>적재율</th><th>빈 롤테이너 회수</th><th>귀로 순비용</th></tr></thead><tbody id="bk-table"></tbody></table></div>
       </section>
@@ -750,7 +754,7 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
     <div class="results">
       <section class="card aimod"><div class="card-head"><h3>AI 모듈 ④ 공정 정산 + 적정 배송비</h3><span class="tag syn">가상 데이터</span></div><div class="mods" id="s-mods"></div></section>
       <div class="kpis" id="s-kpis"></div>
-      <section class="card">
+      <section class="card" id="s-cust-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>고객별 정산 (육지 → 제주항)</h3><button type="button" class="ghost sm" id="s-csv">정산서 CSV 내려받기</button></div>
         <div class="tablewrap"><table><thead><tr><th>고객</th><th>구분</th><th>배편 수</th><th>칸</th><th>부피 비율 청구</th><th>샤플리 청구</th><th>혼자 비용</th><th>청구액</th><th>절감률</th><th>견적 보장</th><th>비고</th></tr></thead><tbody id="s-cust"></tbody></table></div>
         <p class="small" id="s-check">—</p>
@@ -767,7 +771,7 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
           <p class="small" id="ph-msg">사진을 올리고 ① 롤테이너 바닥선 → ② 롤테이너 맨 윗선 → ③ 화물 윗선 순서로 클릭하세요. 사진은 브라우저 밖으로 보내지 않습니다.</p>
           <div class="row"><button type="button" class="ghost sm" id="ph-apply" disabled>이 실측값을 정산에 쓰기</button><button type="button" class="link" id="ph-reset">다시 표시</button></div>
         </section>
-        <section class="card">
+        <section class="card" id="s-ret-sec" style="scroll-margin-top: 80px">
           <h3>귀로 비용과 육지행 화주 정산</h3>
           <div class="kpis" id="s-ret-kpis"></div>
           <div class="tablewrap"><table><thead><tr><th>화주</th><th>구분</th><th>칸</th><th>청구액</th><th>혼자 트럭</th><th>절감률</th></tr></thead><tbody id="s-ret"></tbody></table></div>
@@ -1474,7 +1478,10 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
   const ss = { get: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { /* 무시 */ } } };
   let authed = ss.get('itsum-ops-auth') === '1';
   const srcTag = (src) => `<span class="tag ${src === '실제' ? 'real' : 'syn'}">${src}</span>`;
-  const kpi = ([k, v, s, cls]) => `<div class="card${cls ? ' ' + cls : ''}"><span class="k">${k}</span><span class="num">${v}</span><span class="s">${s}</span></div>`;
+  // act가 있으면 누를 수 있는 칸: 표를 그 조건으로 거르거나(data-kpi) 관련 표로 이동(data-scroll)
+  const kpi = ([k, v, s, cls, act, on]) => (act
+    ? `<button type="button" class="card kpi-btn${cls ? ' ' + cls : ''}" ${act} aria-pressed="${on ? 'true' : 'false'}"><span class="k">${k}</span><span class="num">${v}</span><span class="s">${s}</span><span class="go">${on ? '표에서 보는 중' : '눌러서 보기 →'}</span></button>`
+    : `<div class="card${cls ? ' ' + cls : ''}"><span class="k">${k}</span><span class="num">${v}</span><span class="s">${s}</span></div>`);
   const meter = (load) => `<span class="meter"><i><b style="width:${Math.min(100, load / SLOTS * 100).toFixed(1)}%"></b></i>${pct(load / SLOTS)}</span>`;
   const stPill = (st) => `<span class="pill ${st === '매칭 완료' ? 'done' : 'need'}">${st}</span>`;
   const modCard = (no, t, io, model, metric, demo, prod) => `<div class="mod"><b class="t">${no} ${t}</b><span class="io">${io}</span><span class="small">모델: ${model}</span><span class="metric">${metric}</span><span class="impl">시연 구현: ${demo}<br>실서비스 구현: ${prod}</span></div>`;
@@ -1958,15 +1965,16 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
     const plans = portsOf(opsPort).map((P) => planDay(P.id, opsDate, 'cur')), sails = plans.flatMap((p) => p.sailings);
     const open = sails.filter((sl) => sl.ok && now < sl.s.cutoff);
     const fc = open.map((sl) => { const got = sum(outs.filter((x) => x.o.firstDep === sl.s.dep), (x) => x.o.slots), f = sailForecast(sl.s); return { sl, got, add: Math.max(0, f.mean - got), addHi: Math.max(0, f.hi - got) }; });
+    const fo0 = val('aout'), fr0 = val('aret');
     $('a-kpi-out').innerHTML = [
-      ['일일 요청', num(outs.length) + '건', slotsTxt(oS(outs))],
-      ['매칭 완료', num(oDone.length) + '건', slotsTxt(oS(oDone)) + ' · 트럭·배편 확정', 'done-k'],
-      ['매칭 필요', num(oNeed.length) + '건', slotsTxt(oS(oNeed)) + ' · 합적 중·이월', 'need-k'],
+      ['일일 요청', num(outs.length) + '건', slotsTxt(oS(outs)), '', 'data-kpi="out|"', fo0 === ''],
+      ['매칭 완료', num(oDone.length) + '건', slotsTxt(oS(oDone)) + ' · 트럭·배편 확정', 'done-k', 'data-kpi="out|매칭 완료"', fo0 === '매칭 완료'],
+      ['매칭 필요', num(oNeed.length) + '건', slotsTxt(oS(oNeed)) + ' · 합적 중·이월', 'need-k', 'data-kpi="out|매칭 필요"', fo0 === '매칭 필요'],
     ].map(kpi).join('');
     $('a-kpi-ret').innerHTML = [
-      ['일일 요청', num(rets.length) + '건', slotsTxt(rAll)],
-      ['매칭 완료', num(rets.filter((x) => x.st === '매칭 완료').length) + '건', slotsTxt(rMatched) + ' · 귀로 트럭 배정', 'done-k'],
-      ['매칭 필요', num(rets.filter((x) => x.st === '매칭 필요').length) + '건', slotsTxt(rAll - rMatched) + ' · 대기', 'need-k'],
+      ['일일 요청', num(rets.length) + '건', slotsTxt(rAll), '', 'data-kpi="ret|"', fr0 === ''],
+      ['매칭 완료', num(rets.filter((x) => x.st === '매칭 완료').length) + '건', slotsTxt(rMatched) + ' · 귀로 트럭 배정', 'done-k', 'data-kpi="ret|매칭 완료"', fr0 === '매칭 완료'],
+      ['매칭 필요', num(rets.filter((x) => x.st === '매칭 필요').length) + '건', slotsTxt(rAll - rMatched) + ' · 대기', 'need-k', 'data-kpi="ret|매칭 필요"', fr0 === '매칭 필요'],
     ].map(kpi).join('');
     const rows = [{ label: '육지 → 제주항 전체', a: oS(oDone), b: oS(oNeed), f: sum(fc, (x) => x.add), total: true }];
     for (const sl of sails) {
@@ -2003,6 +2011,17 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
     const ib = memory.map((b) => ({ b, bn: bookingNow(b) })).filter((x) => x.bn.s.dep >= now - DAY).sort((a, b) => a.bn.ik.close - b.bn.ik.close);
     $('a-intake').innerHTML = ib.map(({ b, bn }) => `<tr><td>${esc(b.id)} ${srcTag(b.demo ? '가상' : '실제')}</td><td>${esc(b.name)}</td><td>${esc(bn.depot.name)}${bn.depot.asm ? ' <span class="tag asm">가정</span>' : ''}</td><td>${fmtDT(bn.ik.open)}</td><td><b>${fmtDT(bn.ik.close)}</b></td><td>${esc(bn.s.ship)} ${fmtTime(bn.s.dep)}${bn.reason ? ` <span class="tag asm">${bn.reason === 'cancel' ? '결항 재배정' : bn.reason === 'late' ? '늦은 반입 이월' : '배편 조정'}</span>` : ''}</td><td>${b.lateEta ? `늦어짐 · ${fmtDT(b.lateEta)} 도착 예상` : '—'}</td><td><span class="pill ${bn.cls}">${bn.st}</span></td><td><button type="button" class="ghost sm" data-intake="${esc(b.id)}">${b.intake ? '확인 취소' : '반입 확인'}</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty-note">반입 예정인 예약이 없습니다. 고객 화면 내 예약 조회에서 시연용 예약 2건을 불러올 수 있습니다.</td></tr>';
   };
+  // 숫자 칸 누르기: 표 거르기 / 관련 표로 이동
+  document.addEventListener('click', (e) => {
+    const k = e.target.closest('[data-kpi]'), sc = e.target.closest('[data-scroll]');
+    if (k) {
+      const [which, st] = k.dataset.kpi.split('|'), name = which === 'out' ? 'aout' : 'aret';
+      const r = document.querySelector(`input[name="${name}"][value="${st}"]`);
+      if (r) r.checked = true;
+      renderDaily();
+      $(which === 'out' ? 'a-out-sec' : 'a-ret-sec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (sc) { const el = $(sc.dataset.scroll); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
   $('a-date').addEventListener('change', (e) => { opsDate = e.target.value; renderDaily(); });
   $('a-port').addEventListener('change', (e) => { opsPort = e.target.value; renderDaily(); });
   document.querySelectorAll('input[name="aout"], input[name="aret"]').forEach((r) => r.addEventListener('change', renderDaily));
@@ -2114,7 +2133,7 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
       ['매칭된 칸', slotsTxt(matched), `이 날 준비 요청 ${slotsTxt(reqs.reduce((a, q) => a + q.slots, 0))} · 이월분 ${carried.length}건 포함`],
       ['귀로 공차율', `100%<span class="arrow">→</span>${cap ? pct(1 - matched / cap) : '—'}`, '매칭 전 → 매칭 후 (빈 칸 비율)'],
       ['복화로 회수한 도선료', won(recov), `공차 귀로 ${emptyT.length}대 · 공차 비용 ${won(emptyT.reduce((a, t) => a + t.E, 0))}`],
-    ].map(kpi).join('');
+    ].map(([k, v, s], i) => kpi([k, v, s, '', 'data-scroll="bk-truck-sec"'])).join('');
     $('bk-table').innerHTML = trucks.map((t) => {
       const goods = t.pieces.map((p) => `${esc(p.q.shipper)} ${slotsTxt(p.slots)}${keyOf(t.ret.cutoff) > keyOf(p.q.readyT) ? ' <span class="tag asm">이월</span>' : ''}${p.q.source === '실제' ? ' ' + srcTag('실제') : ''}`).join(', ');
       const net = t.pieces.length ? t.L - t.pieces.reduce((a, p) => a + p.fare - HANDLING * p.slots, 0) : t.E;
@@ -2175,7 +2194,7 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
       ['혼자 보냈을 때', won(solo), solo ? pct((solo - bill) / solo) + ' 절감' : '—'],
       ['잇섬 부담', won(r.quoteLoss + r.capLoss), `견적 보장 ${won(r.quoteLoss)} · 상한 ${won(r.capLoss)}`],
       ['상자당 해상 원가', won10(boxIt), `혼자 보낼 때 ${won10(boxSolo)}`],
-    ].map(kpi).join('');
+    ].map(([k, v, s]) => kpi([k, v, s, '', 'data-scroll="s-cust-sec"'])).join('');
     $('s-cust').innerHTML = r.cust.map((c) => `<tr><td>${esc(c.name)}</td><td>${srcTag(c.src)}</td><td>${c.sail}</td><td>${slotsTxt(c.slots)}</td><td>${won(c.vol)}</td><td>${won(c.shap)}</td><td>${won(c.solo)}</td><td><b>${won(c.bill)}</b></td><td>${pct((c.solo - c.bill) / c.solo)}</td><td>${c.quoted ? won(c.quoted) : '—'}</td><td>${c.meas ? `<span class="tag ${c.meas === '실측 차이' ? 'asm' : 'real'}">${c.meas}</span>` : ''}</td></tr>`).join('') || '<tr><td colspan="11" class="empty-note">기간 안 출항을 마친 주문이 없습니다.</td></tr>';
     const allLe = r.cust.every((c) => c.bill <= c.solo + 0.5 && (!c.quoted || c.bill <= c.quoted + 0.5));
     $('s-check').innerHTML = `<span class="${r.chk.ok === r.chk.n ? 'okmark' : 'ngmark'}">${r.chk.ok === r.chk.n ? '✓' : '✗'}</span> 트럭 ${r.chk.n}대 중 ${r.chk.ok}대: 같은 트럭 고객 도선료 분담 합 = 트럭 도선료 · <span class="${r.sChk.ok === r.sChk.n ? 'okmark' : 'ngmark'}">${r.sChk.ok === r.sChk.n ? '✓' : '✗'}</span> 샤플리 값 합 = 총 절감액 · <span class="${allLe ? 'okmark' : 'ngmark'}">${allLe ? '✓' : '✗'}</span> 모든 청구액 ≤ 혼자 비용·견적 운임`;
@@ -2184,7 +2203,7 @@ dialog.pin input { font-size: 20px; letter-spacing: .4em; text-align: center; }
     const soloKey = new Map();
     rts.forEach((t) => t.pieces.forEach((p) => { const e = ret.get(p.q.shipper) || { name: p.q.shipper, src: p.q.source, slots: 0, bill: 0, solo: 0 }; e.slots += p.slots; e.bill += p.fare; ret.set(p.q.shipper, e); const k = p.q.shipper + '|' + t.P.id + '@' + t.ret.dep; const s = soloKey.get(k) || { e, slots: 0, L: t.L }; s.slots += p.slots; soloKey.set(k, s); }));
     soloKey.forEach((s) => { s.e.solo += Math.ceil(s.slots / SLOTS - 1e-9) * s.L; });
-    $('s-ret-kpis').innerHTML = [['귀로 공차 비용', won(emptyCost), `${rts.filter((t) => !t.pieces.length).length}대 × 공차 도선료`], ['복화로 회수한 금액', won(recov), '늘어난 도선료를 화주가 분담']].map(kpi).join('');
+    $('s-ret-kpis').innerHTML = [['귀로 공차 비용', won(emptyCost), `${rts.filter((t) => !t.pieces.length).length}대 × 공차 도선료`], ['복화로 회수한 금액', won(recov), '늘어난 도선료를 화주가 분담']].map(([k, v, s]) => kpi([k, v, s, '', 'data-scroll="s-ret-sec"'])).join('');
     $('s-ret').innerHTML = [...ret.values()].sort((a, b) => b.bill - a.bill).map((c) => `<tr><td>${esc(c.name)}</td><td>${srcTag(c.src)}</td><td>${slotsTxt(c.slots)}</td><td>${won(c.bill)}</td><td>${won(c.solo)}</td><td>${pct((c.solo - c.bill) / c.solo)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty-note">기간 안 매칭된 육지행 화물이 없습니다.</td></tr>';
     $('s-ret-check').innerHTML = `<span class="okmark">✓</span> 화주 운임 = (적재 도선료 − 공차 도선료) × 내 칸 ÷ 실린 칸 + 하역비. 혼자 트럭은 적재 도선료 전액으로 비교했습니다.`;
     // 사진 실측용 주문 목록
