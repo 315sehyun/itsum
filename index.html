@@ -92,6 +92,8 @@ input:hover, select:hover { border-color: #CBBDB6; }
 details.cfg summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); }
 details.cfg .fields { margin-top: 12px; }
 .error { color: var(--risk-high); font-weight: 600; }
+.error.pending { color: var(--orange-deep); }
+input.need, .cargo.need .c-qty { border-color: var(--orange); background: #FFF8F0; }
 .fixed { padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--subtle); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .hint { font-size: 12.5px; color: var(--ink-muted); }
 .hint b { color: var(--ink); }
@@ -713,7 +715,6 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     </div>
     <div class="results">
       <section class="card" id="a-check-card" hidden><div class="card-head"><h3>자체 점검</h3><span class="small muted" id="a-check-sum">—</span></div><div class="checks" id="a-checks"></div></section>
-      <section class="card aimod"><div class="card-head"><h3>AI 모듈 4개가 오늘 한 일</h3><span class="row"><span class="tag syn">가상 데이터로 학습</span><span class="tag asm">시연 구현</span></span></div><div class="pipe" id="a-pipe"></div><div class="cmpbars" id="a-cmp"></div><p class="small muted" id="a-ai-note">—</p></section>
       <div class="grid2">
         <div class="kgroup"><h3>육지 → 제주 <span class="small muted">출항일 기준</span></h3><div class="kpis" id="a-kpi-out"></div></div>
         <div class="kgroup"><h3>제주 → 육지 <span class="small muted">준비일 기준</span></h3><div class="kpis" id="a-kpi-ret"></div></div>
@@ -735,6 +736,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         <div class="card-head"><h3>제주 → 육지 요청</h3><div class="row"><div class="seg inline" role="radiogroup" aria-label="제주→육지 상태"><label><input type="radio" name="aret" value="" checked><span>전체</span></label><label><input type="radio" name="aret" value="매칭 완료"><span>매칭 완료</span></label><label><input type="radio" name="aret" value="매칭 필요"><span>매칭 필요</span></label></div><button type="button" class="ghost sm" id="a-ret-csv">CSV</button></div></div>
         <div class="tablewrap"><table><thead><tr><th>요청 번호</th><th>구분</th><th>화주</th><th>도착</th><th>칸</th><th>온도</th><th>준비</th><th>상태</th><th>내용</th></tr></thead><tbody id="a-ret-table"></tbody></table></div>
       </section>
+      <section class="card aimod"><div class="card-head"><h3>AI 모듈 4개가 오늘 한 일</h3><span class="row"><span class="tag syn">가상 데이터로 학습</span><span class="tag asm">시연 구현</span></span></div><div class="pipe" id="a-pipe"></div><div class="cmpbars" id="a-cmp"></div><p class="small muted" id="a-ai-note">—</p></section>
     </div>
   </div>
 </main>
@@ -751,7 +753,6 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       </div>
     </div>
     <div class="results">
-      <section class="card aimod"><div class="card-head"><h3>AI 모듈 ① 물량 예측 + 공동적재 · ② 결항 예측 + 재배정</h3><span class="tag syn">가상 데이터로 학습</span></div><div class="mods" id="p-mods"></div></section>
       <div class="alerts" id="p-alerts"></div>
       <section class="card"><div class="card-head"><h3>경로 요약</h3><span class="small muted">출발 지역 → 출발항 합적 지점 → 배편 → 제주항 → 제주 목적지</span></div><div class="flow" id="p-route"></div></section>
       <div class="grid2" id="p-sailings"></div>
@@ -767,6 +768,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         <p class="small muted">칸 안 숫자: 예측 평균 / <b>추천 슬롯</b>(90% 상한을 올림). 회사가 이 칸 수만큼 미리 예약해 두면 열흘 중 아흐레는 모자라지 않습니다.</p>
       </section>
       <section class="card"><div class="card-head"><h3>날씨와 결항 확률</h3><span class="tag syn">가상 데이터</span></div><div class="tablewrap"><table><thead><tr><th>날짜</th><th>배편</th><th>파고</th><th>풍속</th><th>결항 확률 (AI)</th><th>주요 원인</th></tr></thead><tbody id="p-wx"></tbody></table></div><p class="small muted">결항 학습 데이터는 가상이며, 한국해양교통안전공단 여객선 운항상태 API와 기상청 해양기상부이 자료로 교체 예정입니다.</p></section>
+      <section class="card aimod"><div class="card-head"><h3>AI 모듈 ① 물량 예측 + 공동적재 · ② 결항 예측 + 재배정</h3><span class="tag syn">가상 데이터로 학습</span></div><div class="mods" id="p-mods"></div></section>
     </div>
   </div>
 </main>
@@ -779,7 +781,6 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       <div class="ops-controls"><label class="field"><span>제주항 도착일</span><select id="bk-date"></select></label></div>
     </div>
     <div class="results">
-      <section class="card aimod"><div class="card-head"><h3>AI 모듈 ③ 복화 매칭</h3><span class="tag syn">가상 데이터</span></div><div class="mods" id="bk-mods"></div></section>
       <p class="notice">제주항 출항 귀로 배편 시각은 <span class="tag asm">가정</span> 값입니다(목포항행 포함, 선사 확인 필요). 트럭은 제주항 도착 후 하역 2시간을 마치고, 출항 2시간 전 마감에 맞출 수 있는 첫 귀로 배편으로 자기 출발항에 돌아갑니다. 못 실은 요청은 다음 귀로 배편 후보로 넘어갑니다.</p>
       <div class="kpis" id="bk-kpis"></div>
       <section class="card" id="bk-truck-sec" style="scroll-margin-top: 80px">
@@ -793,6 +794,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
         <div class="chart" id="bk-month"></div>
         <p class="small muted" id="bk-month-note">—</p>
       </section>
+      <section class="card aimod"><div class="card-head"><h3>AI 모듈 ③ 복화 매칭</h3><span class="tag syn">가상 데이터</span></div><div class="mods" id="bk-mods"></div></section>
     </div>
   </div>
 </main>
@@ -808,7 +810,6 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
       </div>
     </div>
     <div class="results">
-      <section class="card aimod"><div class="card-head"><h3>AI 모듈 ④ 공정 정산 + 적정 배송비</h3><span class="tag syn">가상 데이터</span></div><div class="mods" id="s-mods"></div></section>
       <div class="kpis" id="s-kpis"></div>
       <section class="card" id="s-cust-sec" style="scroll-margin-top: 80px">
         <div class="card-head"><h3>고객별 정산 (육지 → 제주항)</h3><button type="button" class="ghost sm" id="s-csv">정산서 CSV 내려받기</button></div>
@@ -834,6 +835,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
           <p class="small" id="s-ret-check">—</p>
         </section>
       </div>
+      <section class="card aimod"><div class="card-head"><h3>AI 모듈 ④ 공정 정산 + 적정 배송비</h3><span class="tag syn">가상 데이터</span></div><div class="mods" id="s-mods"></div></section>
     </div>
   </div>
 </main>
@@ -1406,9 +1408,10 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
 
   let render = () => {};
-  const fillCouriers = (sel) => { const prev = sel.value || 'hanjin'; sel.innerHTML = COURIERS.map((k) => `<option value="${k}">${esc(BOXES[k].name)}${BOXES[k].st === '실제' ? '' : ` (등급 ${BOXES[k].st})`}</option>`).join(''); sel.value = prev; };
+  const fillCouriers = (sel) => { const prev = sel.value || 'hanjin'; sel.innerHTML = COURIERS.map((k) => `<option value="${k}">${esc(BOXES[k].name)}</option>`).join(''); sel.value = prev; };
   fillCouriers($('q-courier'));
   const cargo = makeCargo($('q-cargo'), () => render(), () => $('q-courier').value);
+  cargo.set([{ type: 'roll', qty: '', fill: 1 }]);
   $('q-courier').addEventListener('change', () => cargo.refresh());
   // 롤테이너 규격: 보내는 분(회사)별로 한 번 등록해 브라우저에 보관
   const ROLL_KEY = 'itsum-rollspec-v1';
@@ -1429,7 +1432,7 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     $('q-date').value = q.date; $('q-time').value = q.time; $('c-roll').value = q.rollM3; $('c-driver').value = q.driver; $('c-th').value = q.th; $('c-delay').value = q.delayCost;
   };
   const todayKey = keyOf(nowMin());
-  $('q-date').min = todayKey; $('q-date').value = addDays(todayKey, 1);
+  $('q-date').min = todayKey;
   $('rq-date').min = todayKey; $('rq-date').value = addDays(todayKey, 1);
 
   // ---- 그림: 트럭 공간 → 도선료 나누기 ----
@@ -1502,18 +1505,26 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
   };
 
   // ---- 단계 ----
-  let current = null, step = 1;
+  // 앞 단계를 마쳐야 다음 단계로: 1단계 필수 입력이 모두 있어야 2단계, 2단계를 본 뒤에야 3단계
+  let current = null, step = 1, reached = 1;
+  const missingOf = (q) => [
+    !q.name && '보내는 분',
+    !q.lines.some((l) => l.qty > 0) && '화물 수량',
+    !q.date && '출발 희망일',
+  ].filter(Boolean);
   const paintStepper = () => {
+    if (!current) reached = 1;
     document.querySelectorAll('#stepper li').forEach((li) => {
       const k = +li.dataset.step, b = li.querySelector('button');
       li.className = k === step ? 'on' : k < step ? 'past' : '';
-      b.disabled = k > 1 && !current;
+      b.disabled = (k > 1 && !current) || k > reached + 1;
       if (k === step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
     });
   };
   const goStep = (n) => {
-    if (n > 1 && !current) return;
-    step = n;
+    if (n > 1 && !current) n = 1;
+    if (n > reached + 1) n = reached + 1;
+    step = n; reached = Math.max(reached, n);
     document.querySelectorAll('[data-step-panel]').forEach((el) => { el.hidden = +el.dataset.stepPanel !== n; });
     $('summary').hidden = n === 1;
     paintStepper();
@@ -1527,8 +1538,15 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     fillHubPort($('q-hub'), $('q-port'), '자동 (AI 추천)', 'mokpo');
     const q = readInputs();
     $('row-hubhours').hidden = q.hub !== '기타';
-    let r = quote(q);
+    const qbx = BOXES[q.courier] || BOXES.etc;
+    $('courier-hint').innerHTML = `${stTag(qbx.st)} ${esc(qbx.src)} · 박스는 등급별 개수만 넣으세요`;
+    $('rs-hint').innerHTML = `${$('rs-w').value}×${$('rs-d').value}×${$('rs-h').value}cm = ${num(q.rollSpec, 2)}㎥ (1칸 ${num(q.rollM3, 1)}㎥의 ${num(q.rollSpec / q.rollM3, 2)}배)${q.name ? (ROLLS[q.name] ? ` · ${esc(q.name)} 규격으로 저장됨` : ` · 바꾸면 ${esc(q.name)} 규격으로 저장`) : ' · 보내는 분을 입력하면 회사별로 저장'}`;
+    const miss = missingOf(q);
+    ['q-name', 'q-date'].forEach((id) => $(id).classList.toggle('need', miss.includes(id === 'q-name' ? '보내는 분' : '출발 희망일')));
+    $('q-cargo').classList.toggle('need', miss.includes('화물 수량'));
+    let r = miss.length ? { error: `${miss.join(', ')}을(를) 입력하면 운임을 확인할 수 있습니다.` } : quote(q);
     if (!r.error && q.date < todayKey) r = { error: '출발 희망일은 오늘 이후로 골라 주세요.' };
+    $('q-error').classList.toggle('pending', miss.length > 0);
     $('q-error').hidden = !r.error; $('result').hidden = !!r.error; $('to2').disabled = !!r.error;
     if (r.error) { $('q-error').textContent = r.error; $('convert').textContent = '—'; $('port-hint').textContent = ''; current = null; if (step > 1) goStep(1); else paintStepper(); return; }
     current = r;
@@ -1536,8 +1554,6 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     $('booked').hidden = true;
     const cx = r.ctx, bx = BOXES[cx.courier] || BOXES.etc;
     $('convert').innerHTML = `${r.lines.map((l) => lineTxt(l, cx)).join(' + ')} → 약 ${num(r.raw0, 2)}칸${r.corr && r.corr.ratio < 0.995 ? ` → <span class="tag ai">AI 보정 ×${num(r.corr.ratio, 2)}</span> 최근 실측 ${r.corr.n}건 평균${r.corr.real ? `(실제 ${r.corr.real}건 포함)` : ''} <span class="tag syn">가상</span> → 약 ${num(r.raw, 2)}칸` : ''} → 과금 <b>${slotsTxt(r.mine)}</b> (0.25칸 단위 올림)${r.lines.some((l) => l.type === 'box') ? ' · 대표 부피는 상한 기준 <span class="tag asm">가정</span>' : ''} · 정산은 합적 지점 실측으로 합니다`;
-    $('courier-hint').innerHTML = `${stTag(bx.st)} ${esc(bx.src)} · 박스는 등급별 개수만 넣으세요`;
-    $('rs-hint').innerHTML = `${$('rs-w').value}×${$('rs-d').value}×${$('rs-h').value}cm = ${num(cx.rollSpec, 2)}㎥ (1칸 ${num(cx.rollM3, 1)}㎥의 ${num(cx.rollSpec / cx.rollM3, 2)}배)${q.name ? (ROLLS[q.name] ? ` · ${esc(q.name)} 규격으로 저장됨` : ` · 바꾸면 ${esc(q.name)} 규격으로 저장`) : ' · 보내는 분을 입력하면 회사별로 저장'}`;
     $('port-hint').innerHTML = q.port === 'auto' || r.rec.P.id === r.P.id ? `AI 추천 출발항 <b>${r.rec.P.name}</b> · 기대 비용 ${won10(r.rec.exp)}이 가장 낮음` : `AI 추천은 <b>${r.rec.P.name}</b>(기대 비용 ${won10(r.rec.exp)}) · 지금 고른 ${r.P.name}은 ${won10(r.sch.exp)}`;
     $('summary-txt').textContent = `${q.temp === 'cold' ? '냉장' : '상온'} ${slotsTxt(r.mine)} · ${q.hub === '기타' ? '기타' : q.hub} → ${r.P.name} → 제주항 → ${q.dest} · ${fmtDate(r.departT)} ${q.time} 출발`;
     // 2단계
@@ -1552,9 +1568,9 @@ button.kpi-btn .go { font-size: 11.5px; font-weight: 600; color: var(--orange-de
     const coSave = r.sh.solo - r.base, guarShown = r.base - r.fare;
     $('r-save-k').textContent = `혼자 트럭 왕복 ${won(r.sh.solo)}보다`;
     $('r-save').textContent = won(save) + ' 절감';
-    $('r-sbar').innerHTML = [[r.fare, 'var(--orange-deep)', '내가 내는 확정 견적'], [coSave, '#FFCC80', '공동적재로 아낀 돈'], [guarShown, 'var(--ai)', 'AI 예측 환급으로 미리 깎은 돈']].map(([v, c, t]) => `<span style="flex:${Math.max(0, v)};background:${c}" title="${t} ${won(v)}"></span>`).join('');
-    $('r-save-co').innerHTML = `<i style="background:#FFCC80"></i>공동적재로 아낀 돈 <b>${won(coSave)}</b>`;
-    $('r-save-ai').innerHTML = `<i style="background:var(--ai)"></i>AI 예측 환급으로 미리 깎은 돈 <b>${won(guarShown)}</b> · 복화되면 최대 ${won10(r.rf.max)}까지`;
+    $('r-sbar').innerHTML = [[r.fare, 'var(--orange-deep)', '내가 내는 확정 견적'], [coSave, '#FFCC80', '공동적재로 절감된 운임'], [guarShown, 'var(--ai)', 'AI 예측으로 미리 환급된 금액']].map(([v, c, t]) => `<span style="flex:${Math.max(0, v)};background:${c}" title="${t} ${won(v)}"></span>`).join('');
+    $('r-save-co').innerHTML = `<i style="background:#FFCC80"></i>공동적재로 절감된 운임 <b>${won(coSave)}</b>`;
+    $('r-save-ai').innerHTML = `<i style="background:var(--ai)"></i>AI 예측으로 미리 환급된 금액 <b>${won(guarShown)}</b> · 복화되면 최대 ${won10(r.rf.max)}까지`;
     $('r-solo').textContent = won(r.sh.solo);
     // 복화 환급 카드: 워터폴과 경우별 금액
     const minFare = r10(r.base - r.rf.max), meanFare = Math.min(r.fare, r10(r.base - r.rf.exp));
